@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Domain\Auth\Services;
+namespace App\Auth\Services;
 
-use App\Domain\User\Models\User;
+use App\User\Domain\Entity\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;

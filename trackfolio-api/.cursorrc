@@ -1,0 +1,18 @@
+Use Domain-Driven Design (DDD) paradign when organizing classes.
+Use a Bounded Context Structure, following this example:
+
+app/
+└── User/                  <-- Bounded Context: "User"
+    ├── Domain/            <-- Core Business Logic
+    │   ├── Entity/
+    │   │   └── User.php
+    │   ├── Service/
+    │   │   └── CreateRandomPasswordService.php
+    │   └── ValueObject/   <-- Value Objects (e.g., Email, Address)
+    │       └── Email.php
+    ├── Infrastructure/    <-- Persistence and External Services Implementation
+    │   └── Repository/
+    │       └── UserRepository.php
+    └── Application/       <-- Coordinates Domain Logic for Use Cases
+        └── UseCase/
+            └── CreateUserUseCase.php

@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Domain\Auth\Controllers;
+namespace App\Auth\Controllers;
 
-use App\Domain\Auth\Requests\LoginRequest;
-use App\Domain\Auth\Requests\RegisterRequest;
-use App\Domain\Auth\Services\LoginService;
-use App\Domain\Auth\Services\RegisterService;
+use App\Auth\Requests\LoginRequest;
+use App\Auth\Requests\RegisterRequest;
+use App\Auth\Services\LoginService;
+use App\Auth\Services\RegisterService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 
@@ -48,5 +48,4 @@ class AuthController extends Controller
         ]);
     }
 }
-
 

@@ -1,19 +1,19 @@
 <?php
 
-namespace App\Domain\Auth\Services;
+namespace App\User\Infrastructure\Repository;
 
-use App\Domain\User\Models\User;
+use App\User\Domain\Entity\User;
 use Illuminate\Support\Facades\Hash;
 
-class RegisterService
+class UserRepository
 {
     /**
-     * Register a new user.
+     * Create a new user.
      *
      * @param array<string, mixed> $data
      * @return User
      */
-    public function register(array $data): User
+    public function create(array $data): User
     {
         return User::create([
             'name' => $data['email'], // Using email as default name, can be updated later
@@ -22,5 +22,4 @@ class RegisterService
         ]);
     }
 }
-
 

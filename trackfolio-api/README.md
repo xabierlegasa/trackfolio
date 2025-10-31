@@ -14,17 +14,23 @@ docker-compose up --build
 
 
 ### Run migrations
-
 ```bash
 cd infra
 docker-compose exec app php artisan migrate
 ```
 
-### Clea route and config cache
+### Clea caches and restar the app
 ```bash
+cd infra
 docker-compose exec app php artisan route:clear
-docker-compose exec app php artisan config:clear  
+docker-compose exec app php artisan config:clear
+docker-compose exec app php artisan cache:clear
+docker-compose exec app composer dump-autoload
+docker-compose restart app
 ```
+
+
+
 
 ## Features
 
