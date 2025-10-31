@@ -26,10 +26,13 @@ RUN apk add --no-cache pcre-dev $PHPIZE_DEPS \
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy existing application directory permissions
-RUN chown -R www-data:www-data /var/www
+# Copy entrypoint script
+COPY infra/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Expose port 9000 and start php-fpm server
 EXPOSE 9000
+
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["php-fpm"]
 

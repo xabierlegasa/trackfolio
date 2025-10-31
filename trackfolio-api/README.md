@@ -1,108 +1,126 @@
 # Trackfolio API
 
-API REST construida con Laravel 12 para Trackfolio. Esta es una API-only application sin frontend, diseñada para ser consumida por una SPA (Single Page Application).
+REST API built with Laravel 12 for Trackfolio. This is an API-only application without frontend, designed to be consumed by a SPA (Single Page Application).
 
-## Características
 
-- **Laravel 12** con PHP 8.4
-- **API REST** sin frontend
-- **MySQL 8.0** como base de datos
-- **Redis** para cache y sesiones
-- **Docker** para desarrollo y testing
-- **CORS** configurado para SPA
-- **Respuestas JSON** para todas las rutas API
+## Usefull commands
 
-## Requisitos
+### Start Docker
+```bash
+cd infra
+docker-compose up --build
+# api should be available here: http://localhost:8080/
+```
 
-- Docker y Docker Compose
-- Git
 
-## Configuración Inicial
-
-### 1. Clonar y configurar entorno
+### Run migrations
 
 ```bash
-# Clonar el repositorio (si aplica)
+cd infra
+docker-compose exec app php artisan migrate
+```
+
+## Features
+
+- **Laravel 12** with PHP 8.4
+- **REST API** without frontend
+- **MySQL 8.0** as database
+- **Redis** for cache and sessions
+- **Docker** for development and testing
+- **CORS** configured for SPA
+- **JSON responses** for all API routes
+
+## Requirements
+
+- Docker and Docker Compose
+- Git
+
+## Initial Setup
+
+### 1. Clone and configure environment
+
+```bash
+# Clone the repository (if applicable)
 git clone <repository-url>
 cd trackfolio-api
 
-# Copiar archivo de entorno
+# Copy environment file
 cp .env.example .env
 ```
 
-El archivo `.env.example` ya contiene configuración compatible con Docker:
+The `.env.example` file already contains Docker-compatible configuration:
 - `DB_CONNECTION=mysql`
-- `DB_HOST=db` (nombre del servicio Docker)
-- `REDIS_HOST=redis` (nombre del servicio Docker)
+- `DB_HOST=db` (Docker service name)
+- `REDIS_HOST=redis` (Docker service name)
 - `APP_URL=http://localhost:8080`
 
-**Nota:** Si ejecutas sin Docker, actualiza:
-- `DB_HOST=127.0.0.1` o `DB_HOST=localhost`
-- `REDIS_HOST=127.0.0.1` o `REDIS_HOST=localhost`
+**Note:** If running without Docker, update:
+- `DB_HOST=127.0.0.1` or `DB_HOST=localhost`
+- `REDIS_HOST=127.0.0.1` or `REDIS_HOST=localhost`
 
-### 2. Iniciar con Docker
+### 2. Start with Docker
 
 ```bash
 cd infra
 docker-compose up -d --build
 ```
 
-### 3. Instalar dependencias
+### 3. Install dependencies
 
 ```bash
 docker-compose exec app composer install
 ```
 
-### 4. Generar clave de aplicación
+### 4. Generate application key
 
 ```bash
 docker-compose exec app php artisan key:generate
 ```
 
-### 5. Configurar permisos de almacenamiento
+### 5. Set up storage permissions
 
 ```bash
 docker-compose exec app chmod -R 775 storage bootstrap/cache
 docker-compose exec app chown -R www-data:www-data storage bootstrap/cache
 ```
 
-### 6. Ejecutar migraciones
+### 6. Run migrations
 
 ```bash
 docker-compose exec app php artisan migrate
 ```
 
-### 7. Acceder a la API
+### 7. Access the API
 
 - **API:** http://localhost:8080
-- **Base de datos:** localhost:3306
+- **Database:** localhost:3306
 - **Redis:** localhost:6379
 
-## Servicios Docker
+## Docker Services
 
-La configuración Docker incluye los siguientes servicios:
+The Docker configuration includes the following services:
 
-- **app** - PHP 8.4-FPM con aplicación Laravel
-- **nginx** - Servidor web (puerto 8080)
-- **db** - MySQL 8.0 (puerto 3306)
-- **redis** - Cache y almacenamiento de sesiones (puerto 6379)
+- **app** - PHP 8.4-FPM with Laravel application
+- **nginx** - Web server (port 8080)
+- **db** - MySQL 8.0 (port 3306)
+- **redis** - Cache and session storage (port 6379)
 
-## Comandos Útiles
+## Useful Commands
 
 ### Docker
 
-#### Iniciar contenedores:
+#### Start containers:
 ```bash
 cd infra
 docker-compose up -d
 ```
 
-#### Detener contenedores:
+#### Stop containers:
 ```bash
 docker-compose down
 ```
 
-#### Ver logs:
+#### View logs:
 ```bash
 docker-compose logs -f app
 docker-compose logs -f nginx
@@ -110,40 +128,40 @@ docker-compose logs -f db
 docker-compose logs -f redis
 ```
 
-#### Reconstruir contenedores:
+#### Rebuild containers:
 ```bash
 docker-compose down
 docker-compose up -d --build
 ```
 
-### Laravel (dentro de Docker)
+### Laravel (inside Docker)
 
-#### Ejecutar comandos Artisan:
+#### Run Artisan commands:
 ```bash
-docker-compose exec app php artisan <comando>
+docker-compose exec app php artisan <command>
 ```
 
-#### Ejecutar Composer:
+#### Run Composer:
 ```bash
-docker-compose exec app composer <comando>
+docker-compose exec app composer <command>
 ```
 
-#### Acceder al shell del contenedor:
+#### Access container shell:
 ```bash
 docker-compose exec app sh
 ```
 
-#### Ejecutar migraciones:
+#### Run migrations:
 ```bash
 docker-compose exec app php artisan migrate
 ```
 
-#### Ejecutar tests:
+#### Run tests:
 ```bash
 docker-compose exec app php artisan test
 ```
 
-#### Limpiar cachés:
+#### Clear caches:
 ```bash
 docker-compose exec app php artisan cache:clear
 docker-compose exec app php artisan config:clear
@@ -151,205 +169,205 @@ docker-compose exec app php artisan route:clear
 docker-compose exec app php artisan view:clear
 ```
 
-## Pruebas del Sistema Docker
+## Docker System Testing
 
-### Verificación Rápida
+### Quick Verification
 
-1. **Verificar estado de contenedores:**
+1. **Check container status:**
    ```bash
    cd infra
    docker-compose ps
    ```
-   Todos los servicios deben mostrar estado "Up".
+   All services should show "Up" status.
 
-2. **Probar conexión a base de datos:**
+2. **Test database connection:**
    ```bash
-   docker-compose exec db mysql -u trackfolio -psecret -e "SELECT VERSION();"
+   docker-compose exec db mysql -u trackfolio -proot -e "SELECT VERSION();"
    ```
 
-3. **Probar conexión a Redis:**
+3. **Test Redis connection:**
    ```bash
    docker-compose exec redis redis-cli ping
    ```
-   Debe responder: `PONG`
+   Should respond: `PONG`
 
-4. **Probar endpoint de API:**
+4. **Test API endpoint:**
    ```bash
    curl http://localhost:8080
    ```
-   Debe devolver JSON con información de la API.
+   Should return JSON with API information.
 
-5. **Probar health check:**
+5. **Test health check:**
    ```bash
    curl http://localhost:8080/up
    ```
-   Debe devolver: `{"status":"ok"}`
+   Should return: `{"status":"ok"}`
 
-### Script de Pruebas Completo
+### Complete Testing Script
 
 ```bash
 #!/bin/bash
 cd infra
 
-echo "🔍 Verificando configuración Docker..."
+echo "Verifying Docker configuration..."
 
-echo "1. Estado de contenedores:"
+echo "1. Container status:"
 docker-compose ps
 
-echo -e "\n2. Probando conexión a base de datos:"
-docker-compose exec -T db mysql -u trackfolio -psecret -e "SELECT 'Database OK' AS status;" 2>&1 | grep -q "Database OK" && echo "✅ Conexión exitosa" || echo "❌ Fallo en conexión"
+echo -e "\n2. Testing database connection:"
+docker-compose exec -T db mysql -u trackfolio -proot -e "SELECT 'Database OK' AS status;" 2>&1 | grep -q "Database OK" && echo "Connection successful" || echo "Connection failed"
 
-echo -e "\n3. Probando conexión a Redis:"
-docker-compose exec -T redis redis-cli ping | grep -q "PONG" && echo "✅ Conexión exitosa" || echo "❌ Fallo en conexión"
+echo -e "\n3. Testing Redis connection:"
+docker-compose exec -T redis redis-cli ping | grep -q "PONG" && echo "Connection successful" || echo "Connection failed"
 
-echo -e "\n4. Probando endpoint de API:"
+echo -e "\n4. Testing API endpoint:"
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080)
 if [ "$HTTP_CODE" == "200" ]; then
-    echo "✅ API respondiendo (HTTP $HTTP_CODE)"
+    echo "API responding (HTTP $HTTP_CODE)"
 else
-    echo "❌ API devolvió HTTP $HTTP_CODE"
+    echo "API returned HTTP $HTTP_CODE"
 fi
 
-echo -e "\n5. Probando health check:"
+echo -e "\n5. Testing health check:"
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/up)
 if [ "$HTTP_CODE" == "200" ]; then
-    echo "✅ Health check exitoso (HTTP $HTTP_CODE)"
+    echo "Health check passed (HTTP $HTTP_CODE)"
 else
-    echo "❌ Health check falló (HTTP $HTTP_CODE)"
+    echo "Health check failed (HTTP $HTTP_CODE)"
 fi
 
-echo -e "\n✅ Pruebas completadas!"
+echo -e "\nAll tests completed!"
 ```
 
-## Acceso a Servicios
+## Service Access
 
-### Base de Datos MySQL
+### MySQL Database
 
-- **Host:** localhost (desde máquina host) o `db` (desde contenedores)
-- **Puerto:** 3306
-- **Base de datos:** trackfolio (por defecto)
-- **Usuario:** trackfolio (por defecto)
-- **Contraseña:** secret (por defecto)
-- **Root Password:** root (por defecto)
+- **Host:** localhost (from host machine) or `db` (from containers)
+- **Port:** 3306
+- **Database:** trackfolio (default)
+- **Username:** trackfolio (default)
+- **Password:** root (default)
+- **Root Password:** root (default)
 
-Conectar con cliente MySQL:
+Connect with MySQL client:
 ```bash
 mysql -h 127.0.0.1 -P 3306 -u trackfolio -p trackfolio
 ```
 
 ### Redis
 
-- **Host:** localhost (desde máquina host) o `redis` (desde contenedores)
-- **Puerto:** 6379
-- **Sin contraseña** por defecto
+- **Host:** localhost (from host machine) or `redis` (from containers)
+- **Port:** 6379
+- **No password** by default
 
-Probar conexión:
+Test connection:
 ```bash
 redis-cli -h localhost -p 6379
 ```
 
-## Configuración de Entorno
+## Environment Configuration
 
-El archivo `.env.example` en el directorio raíz contiene todas las variables de entorno necesarias pre-configuradas para Docker:
+The `.env.example` file in the root directory contains all necessary environment variables pre-configured for Docker:
 
-- `DB_CONNECTION=mysql` - Base de datos MySQL
-- `DB_HOST=db` - Nombre del servicio Docker (usar `127.0.0.1` o `localhost` para desarrollo local)
-- `REDIS_HOST=redis` - Nombre del servicio Docker (usar `127.0.0.1` o `localhost` para desarrollo local)
-- `APP_URL=http://localhost:8080` - URL de la API
+- `DB_CONNECTION=mysql` - MySQL database
+- `DB_HOST=db` - Docker service name (use `127.0.0.1` or `localhost` for local development)
+- `REDIS_HOST=redis` - Docker service name (use `127.0.0.1` or `localhost` for local development)
+- `APP_URL=http://localhost:8080` - API URL
 
 ### CORS
 
-La configuración CORS está pre-configurada para permitir solicitudes desde:
+CORS configuration is pre-configured to allow requests from:
 - `http://localhost:3000` (React/Vite default)
 - `http://localhost:5173` (Vite default)
 - `http://127.0.0.1:3000`
 - `http://127.0.0.1:5173`
 
-Puedes personalizar los orígenes permitidos en `.env`:
+You can customize allowed origins in `.env`:
 ```env
-CORS_ALLOWED_ORIGINS=http://localhost:3000,https://tudominio.com
+CORS_ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
 ```
 
-## Estructura del Proyecto
+## Project Structure
 
 ```
 trackfolio-api/
-├── app/                 # Lógica de la aplicación
-├── bootstrap/           # Archivos de arranque
-├── config/              # Archivos de configuración
-├── database/            # Migraciones y seeders
-├── infra/               # Configuración Docker
+├── app/                 # Application logic
+├── bootstrap/           # Bootstrap files
+├── config/             # Configuration files
+├── database/           # Migrations and seeders
+├── infra/              # Docker configuration
 │   ├── docker-compose.yml
 │   ├── Dockerfile
 │   ├── nginx/
 │   └── mysql/
-├── public/              # Punto de entrada público
-├── resources/           # Recursos (vacío - API only)
-├── routes/              # Definición de rutas
-│   ├── api.php         # Rutas API
-│   └── web.php         # Rutas web (JSON response)
-├── storage/             # Almacenamiento de archivos
-└── tests/               # Tests automatizados
+├── public/             # Public entry point
+├── resources/          # Resources (empty - API only)
+├── routes/            # Route definitions
+│   ├── api.php        # API routes
+│   └── web.php        # Web routes (JSON response)
+├── storage/            # File storage
+└── tests/             # Automated tests
 ```
 
-## Solución de Problemas
+## Troubleshooting
 
-### Problemas de Permisos
+### Permission Issues
 
-Si encuentras problemas de permisos con archivos:
+If you encounter permission issues with files:
 ```bash
 docker-compose exec app chown -R www-data:www-data /var/www/storage
 docker-compose exec app chmod -R 775 /var/www/storage
 ```
 
-### Problemas de Conexión a Base de Datos
+### Database Connection Issues
 
-- Verifica que el servicio de base de datos esté saludable:
+- Verify that the database service is healthy:
   ```bash
   docker-compose ps
   ```
-- Espera unos segundos a que la base de datos esté lista antes de ejecutar migraciones
-- Verifica que `.env` tenga `DB_HOST=db` (cuando uses Docker)
-- Revisa los logs: `docker-compose logs db`
+- Wait a few seconds for the database to be ready before running migrations
+- Verify that `.env` has `DB_HOST=db` (when using Docker)
+- Check logs: `docker-compose logs db`
 
-### Conflictos de Puertos
+### Port Conflicts
 
-Si los puertos 8080, 3306, o 6379 están en uso, modifica `infra/docker-compose.yml`:
+If ports 8080, 3306, or 6379 are already in use, modify `infra/docker-compose.yml`:
 ```yaml
 ports:
-  - "8081:80"  # Cambiar 8080 a 8081
+  - "8081:80"  # Change 8080 to 8081
 ```
 
-### API devuelve 502 Bad Gateway
+### API returns 502 Bad Gateway
 
-- Revisa logs del contenedor app: `docker-compose logs app`
-- Verifica que PHP-FPM esté ejecutándose: `docker-compose exec app php-fpm -v`
+- Check app container logs: `docker-compose logs app`
+- Verify PHP-FPM is running: `docker-compose exec app php-fpm -v`
 
-### Contenedores no inician
+### Containers won't start
 
-- Revisa qué está mal: `docker-compose logs`
-- Reconstruye desde cero:
+- Check what's wrong: `docker-compose logs`
+- Rebuild from scratch:
   ```bash
   docker-compose down
   docker-compose up -d --build
   ```
 
-## Desarrollo
+## Development
 
-### Ejecutar sin Docker
+### Running without Docker
 
-Si prefieres ejecutar sin Docker, necesitarás:
+If you prefer to run without Docker, you'll need:
 
-1. PHP 8.4 con extensiones: pdo_mysql, mbstring, redis, gd, opcache
+1. PHP 8.4 with extensions: pdo_mysql, mbstring, redis, gd, opcache
 2. MySQL 8.0
 3. Redis 7+
 4. Composer
 
-Actualiza `.env`:
+Update `.env`:
 - `DB_HOST=127.0.0.1`
 - `REDIS_HOST=127.0.0.1`
 
-Luego ejecuta:
+Then run:
 ```bash
 composer install
 php artisan key:generate
@@ -357,22 +375,22 @@ php artisan migrate
 php artisan serve
 ```
 
-## Consideraciones para Producción
+## Production Considerations
 
-⚠️ **Advertencia:** Esta configuración está diseñada para desarrollo. Para producción:
+**Warning:** This configuration is designed for development. For production:
 
-1. Usar contraseñas más seguras para base de datos
-2. Establecer `APP_DEBUG=false`
-3. Configurar SSL/TLS apropiado
-4. Usar configuraciones específicas del entorno
-5. Establecer estrategias de backup adecuadas
-6. Configurar reglas de firewall apropiadas
-7. Usar Docker secrets para datos sensibles
-8. Habilitar autenticación Redis si es necesario
-9. Optimizar configuración de PHP (opcache)
-10. Configurar rate limiting
-11. Implementar logging y monitoreo
+1. Use stronger database passwords
+2. Set `APP_DEBUG=false`
+3. Configure proper SSL/TLS
+4. Use environment-specific configurations
+5. Set up proper backup strategies
+6. Configure proper firewall rules
+7. Use Docker secrets for sensitive data
+8. Enable Redis authentication if needed
+9. Optimize PHP configuration (opcache)
+10. Configure rate limiting
+11. Implement logging and monitoring
 
-## Licencia
+## License
 
-Este proyecto está bajo la licencia MIT.
+This project is licensed under the MIT license.

@@ -3,7 +3,6 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Throwable;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -13,11 +12,18 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Sanctum middleware for SPA authentication
+        $middleware->statefulApi();
+        
+        // Enable CSRF protection for API routes that use cookies (SPA mode)
+        // The register endpoint will require CSRF token from Sanctum
+        $middleware->validateCsrfTokens(except: [
+            // Public endpoints that don't need CSRF (if any)
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Return JSON for all exceptions in API context
-        $exceptions->render(function (Throwable $e, $request) {
+        $exceptions->render(function (\Throwable $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 $statusCode = 500;
                 
