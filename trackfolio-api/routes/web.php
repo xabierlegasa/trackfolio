@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 Route::get('/', function () {
     return response()->json([
@@ -8,3 +9,6 @@ Route::get('/', function () {
         'version' => app()->version(),
     ]);
 });
+
+// Sanctum CSRF cookie route for SPA authentication
+Route::get('/sanctum/csrf-cookie', [CsrfCookieController::class, 'show']);

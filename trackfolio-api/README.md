@@ -20,6 +20,12 @@ cd infra
 docker-compose exec app php artisan migrate
 ```
 
+### Clea route and config cache
+```bash
+docker-compose exec app php artisan route:clear
+docker-compose exec app php artisan config:clear  
+```
+
 ## Features
 
 - **Laravel 12** with PHP 8.4
