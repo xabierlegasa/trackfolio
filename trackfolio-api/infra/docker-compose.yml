@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # PHP/Laravel Application Service
+  app:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    container_name: trackfolio-api-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ../:/var/www
+      - ./php.ini:/usr/local/etc/php/conf.d/custom.ini
+    networks:
+      - trackfolio-network
+    depends_on:
+      - db
+      - redis
+    environment:
+      - PHP_OPCACHE_ENABLE=1
+
+  # Nginx Web Server
+  nginx:
+    image: nginx:alpine
+    container_name: trackfolio-api-nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ../:/var/www
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - trackfolio-network
+    depends_on:
+      - app
+
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: trackfolio-api-db
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: trackfolio
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_PASSWORD: root
+      MYSQL_USER: trackfolio
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./mysql/my.cnf:/etc/mysql/conf.d/custom.cnf
+    networks:
+      - trackfolio-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache/Session Store
+  redis:
+    image: redis:7-alpine
+    container_name: trackfolio-api-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - trackfolio-network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+networks:
+  trackfolio-network:
+    driver: bridge
+
+volumes:
+  db_data:
+    driver: local
+  redis_data:
+    driver: local
+

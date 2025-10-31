@@ -1,0 +1,5 @@
+{
+  "name": "trackfolio-api",
+  "private": true,
+  "description": "API-only Laravel application - no frontend dependencies"
+}
