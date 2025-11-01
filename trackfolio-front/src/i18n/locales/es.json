@@ -4,6 +4,7 @@
   },
   "common": {
     "language": "Idioma",
+    "login": "Iniciar sesión",
     "register": "Registrarse"
   },
   "home": {
@@ -42,7 +43,33 @@
   },
   "dashboard": {
     "title": "Panel de control",
-    "welcome": "¡Bienvenido a tu panel de control!"
+    "welcome": "¡Bienvenido a tu panel de control!",
+    "accountInfo": "Información de la cuenta",
+    "name": "Nombre",
+    "email": "Correo electrónico"
+  },
+  "login": {
+    "title": "Iniciar sesión",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña",
+    "submit": "Iniciar sesión",
+    "noAccount": "¿No tienes una cuenta?",
+    "signUp": "Registrarse",
+    "errors": {
+      "emailRequired": "El correo electrónico es obligatorio",
+      "emailInvalid": "Por favor ingresa un correo electrónico válido",
+      "passwordRequired": "La contraseña es obligatoria",
+      "loginFailed": "Error al iniciar sesión. Por favor verifica tus credenciales e intenta de nuevo."
+    }
+  },
+  "account": {
+    "title": "Cuenta",
+    "accountInfo": "Información de la cuenta",
+    "name": "Nombre",
+    "email": "Correo electrónico",
+    "signOut": "Cerrar sesión"
   }
 }
 

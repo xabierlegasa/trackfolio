@@ -8,6 +8,8 @@ use App\Auth\Services\LoginService;
 use App\Auth\Services\RegisterService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
@@ -26,7 +28,7 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'User registered successfully',
             'user' => [
-                'id' => $user->id,
+                // 'id' => $user->id,
                 'email' => $user->email,
             ],
         ], 201);
@@ -45,6 +47,21 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'email' => $user->email,
             ],
+        ]);
+    }
+
+    /**
+     * Log the user out.
+     */
+    public function logout(Request $request): JsonResponse
+    {
+        // Invalidate session for SPA authentication
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return response()->json([
+            'message' => 'Logged out successfully',
         ]);
     }
 }

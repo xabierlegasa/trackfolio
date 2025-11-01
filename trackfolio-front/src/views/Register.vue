@@ -151,9 +151,11 @@ import { ref, computed, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { authService, type RegisterData } from '../services/authService'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '../stores/userStore'
 
 const { t } = useI18n()
 const router = useRouter()
+const userStore = useUserStore()
 
 const form = reactive<RegisterData & { name: string }>({
   email: '',
@@ -285,9 +287,13 @@ const handleSubmit = async () => {
 
   try {
     await authService.register(form)
+    
+    // Fetch user account info and update store
+    await userStore.fetchAccount()
+    
     isSuccess.value = true
     
-    // Redirect to home after 2 seconds
+    // Redirect to dashboard after 2 seconds
     setTimeout(() => {
       router.push('/dashboard')
     }, 2000)

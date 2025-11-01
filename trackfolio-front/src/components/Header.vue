@@ -5,9 +5,19 @@
         {{ $t('app.name') }}
       </RouterLink>
       <div class="flex items-center gap-4">
-        <RouterLink to="/register" class="link link-hover">
-          {{ $t('common.register') }}
-        </RouterLink>
+        <template v-if="!userStore.account">
+          <RouterLink to="/login" class="link link-hover">
+            {{ $t('common.login') }}
+          </RouterLink>
+          <RouterLink to="/register" class="link link-hover">
+            {{ $t('common.register') }}
+          </RouterLink>
+        </template>
+        <template v-else>
+          <RouterLink to="/account" class="link link-hover font-semibold">
+            {{ userStore.account.name }}
+          </RouterLink>
+        </template>
         <select 
           v-model="selectedLocale" 
           @change="changeLocale"
@@ -25,12 +35,25 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
+import { useUserStore } from '../stores/userStore'
 
 const { locale } = useI18n()
+const userStore = useUserStore()
 const selectedLocale = ref(locale.value)
 
-onMounted(() => {
+onMounted(async () => {
   selectedLocale.value = locale.value
+  
+  // Try to fetch account info if not already loaded
+  // This will silently fail if user is not authenticated
+  if (!userStore.account) {
+    try {
+      await userStore.fetchAccount()
+    } catch (error) {
+      // User is not authenticated, which is fine
+      // The store will handle the error state
+    }
+  }
 })
 
 const changeLocale = (event: Event) => {

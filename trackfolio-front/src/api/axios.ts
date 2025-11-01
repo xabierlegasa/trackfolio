@@ -1,7 +1,13 @@
 import axios from 'axios'
 
+// In development, use relative URLs to leverage Vite proxy
+// In production, use the full API URL
+const baseURL = import.meta.env.DEV 
+  ? '' // Empty string uses relative URLs, Vite proxy will handle it
+  : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080')
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+  baseURL,
   withCredentials: true, // Important for Sanctum CSRF cookies
   headers: {
     'Content-Type': 'application/json',

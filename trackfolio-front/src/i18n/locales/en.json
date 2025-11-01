@@ -4,6 +4,7 @@
   },
   "common": {
     "language": "Language",
+    "login": "Login",
     "register": "Sign Up"
   },
   "home": {
@@ -42,7 +43,33 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "welcome": "Welcome to your dashboard!"
+    "welcome": "Welcome to your dashboard!",
+    "accountInfo": "Account Information",
+    "name": "Name",
+    "email": "Email"
+  },
+  "login": {
+    "title": "Login",
+    "email": "Email",
+    "password": "Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "submit": "Login",
+    "noAccount": "Don't have an account?",
+    "signUp": "Sign Up",
+    "errors": {
+      "emailRequired": "Email is required",
+      "emailInvalid": "Please enter a valid email address",
+      "passwordRequired": "Password is required",
+      "loginFailed": "Login failed. Please check your credentials and try again."
+    }
+  },
+  "account": {
+    "title": "Account",
+    "accountInfo": "Account Information",
+    "name": "Name",
+    "email": "Email",
+    "signOut": "Sign Out"
   }
 }
 
