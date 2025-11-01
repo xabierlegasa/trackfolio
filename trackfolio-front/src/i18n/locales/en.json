@@ -1,0 +1,16 @@
+{
+  "app": {
+    "name": "Trackfolio"
+  },
+  "common": {
+    "language": "Language",
+    "register": "Sign Up or Login"
+  },
+  "home": {
+    "greeting": "Hello World"
+  },
+  "register": {
+    "title": "Sign Up or Login"
+  }
+}
+

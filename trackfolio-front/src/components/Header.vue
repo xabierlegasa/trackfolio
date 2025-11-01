@@ -1,12 +1,43 @@
 <template>
   <header class="sticky top-0 z-50 bg-base-100 shadow-md">
-    <div class="container mx-auto px-4 py-4">
-      <h1 class="text-2xl font-bold">Trackfolio</h1>
+    <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+      <RouterLink to="/" class="text-2xl font-bold no-underline hover:opacity-80">
+        {{ $t('app.name') }}
+      </RouterLink>
+      <div class="flex items-center gap-4">
+        <RouterLink to="/register" class="link link-hover">
+          {{ $t('common.register') }}
+        </RouterLink>
+        <select 
+          v-model="selectedLocale" 
+          @change="changeLocale"
+          class="select select-bordered select-sm"
+        >
+          <option value="en">English</option>
+          <option value="es">Español</option>
+        </select>
+      </div>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
-// Header component
+import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { RouterLink } from 'vue-router'
+
+const { locale } = useI18n()
+const selectedLocale = ref(locale.value)
+
+onMounted(() => {
+  selectedLocale.value = locale.value
+})
+
+const changeLocale = (event: Event) => {
+  const target = event.target as HTMLSelectElement
+  const newLocale = target.value
+  locale.value = newLocale
+  localStorage.setItem('locale', newLocale)
+}
 </script>
 
