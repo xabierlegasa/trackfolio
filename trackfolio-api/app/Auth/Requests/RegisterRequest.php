@@ -24,6 +24,7 @@ class RegisterRequest extends FormRequest
     {
         return [
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'name' => ['required', 'string', 'max:255'],
             'password' => [
                 'required',
                 'string',
@@ -43,11 +44,6 @@ class RegisterRequest extends FormRequest
                     // Check for at least one number or special character
                     if (!preg_match('/[0-9]/', $value) && !preg_match('/[^A-Za-z0-9]/', $value)) {
                         $fail('The :attribute must contain at least one number or special character.');
-                    }
-                    
-                    // Check for no more than two consecutive repeated characters
-                    if (preg_match('/(.)\1{2,}/', $value)) {
-                        $fail('The :attribute must not contain more than two consecutive repeated characters.');
                     }
                 },
             ],

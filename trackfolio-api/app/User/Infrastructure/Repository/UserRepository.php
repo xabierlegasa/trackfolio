@@ -16,7 +16,7 @@ class UserRepository
     public function create(array $data): User
     {
         return User::create([
-            'name' => $data['email'], // Using email as default name, can be updated later
+            'name' => $data['name'] ?? $data['email'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
         ]);

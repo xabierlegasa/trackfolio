@@ -4,13 +4,45 @@
   },
   "common": {
     "language": "Language",
-    "register": "Sign Up or Login"
+    "register": "Sign Up"
   },
   "home": {
     "greeting": "Hello World"
   },
   "register": {
-    "title": "Sign Up or Login"
+    "title": "Sign Up",
+    "email": "Email",
+    "name": "Name",
+    "password": "Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "privacyPolicy": "I accept Trackfolio's privacy policy",
+    "submit": "Sign Up",
+    "passwordRules": {
+      "title": "Password must meet the following requirements:",
+      "minLength": "At least 8 characters",
+      "uppercase": "At least one uppercase letter",
+      "lowercase": "At least one lowercase letter",
+      "numberOrSpecial": "At least one number or special character"
+    },
+    "errors": {
+      "emailRequired": "Email is required",
+      "emailInvalid": "Please enter a valid email address",
+      "nameRequired": "Name is required",
+      "passwordRequired": "Password is required",
+      "privacyRequired": "You must accept the privacy policy",
+      "termsRequired": "You must accept the terms and conditions",
+      "registrationFailed": "Registration failed. Please try again.",
+      "emailExists": "This email is already registered"
+    },
+    "success": {
+      "title": "Registration successful!",
+      "message": "Your account has been created successfully."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome to your dashboard!"
   }
 }
 

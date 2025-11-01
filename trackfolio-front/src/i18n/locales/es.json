@@ -10,7 +10,39 @@
     "greeting": "Hola Mundo"
   },
   "register": {
-    "title": "Registrarse"
+    "title": "Registrarse",
+    "email": "Correo electrónico",
+    "name": "Nombre",
+    "password": "Contraseña",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña",
+    "privacyPolicy": "Acepto la política de privacidad de Trackfolio",
+    "submit": "Registrarse",
+    "passwordRules": {
+      "title": "La contraseña debe cumplir los siguientes requisitos:",
+      "minLength": "Mínimo 8 caracteres",
+      "uppercase": "Al menos una letra mayúscula",
+      "lowercase": "Al menos una letra minúscula",
+      "numberOrSpecial": "Al menos un número o carácter especial"
+    },
+    "errors": {
+      "emailRequired": "El correo electrónico es obligatorio",
+      "emailInvalid": "Por favor ingresa un correo electrónico válido",
+      "nameRequired": "El nombre es obligatorio",
+      "passwordRequired": "La contraseña es obligatoria",
+      "privacyRequired": "Debes aceptar la política de privacidad",
+      "termsRequired": "Debes aceptar los términos y condiciones",
+      "registrationFailed": "Error en el registro. Por favor intenta de nuevo.",
+      "emailExists": "Este correo electrónico ya está registrado"
+    },
+    "success": {
+      "title": "¡Registro exitoso!",
+      "message": "Tu cuenta ha sido creada exitosamente."
+    }
+  },
+  "dashboard": {
+    "title": "Panel de control",
+    "welcome": "¡Bienvenido a tu panel de control!"
   }
 }
 
