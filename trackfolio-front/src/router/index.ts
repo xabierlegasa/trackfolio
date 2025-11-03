@@ -4,6 +4,8 @@ import Register from '../views/Register.vue'
 import Login from '../views/Login.vue'
 import Dashboard from '../views/Dashboard.vue'
 import Account from '../views/Account.vue'
+import UploadDegiroTransactions from '../views/UploadDegiroTransactions.vue'
+import DegiroTransactionsList from '../views/DegiroTransactionsList.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -32,6 +34,16 @@ const router = createRouter({
       path: '/account',
       name: 'account',
       component: Account
+    },
+    {
+      path: '/upload-degiro-transactions',
+      name: 'upload-degiro-transactions',
+      component: UploadDegiroTransactions
+    },
+    {
+      path: '/degiro-transactions',
+      name: 'degiro-transactions-list',
+      component: DegiroTransactionsList
     }
   ]
 })

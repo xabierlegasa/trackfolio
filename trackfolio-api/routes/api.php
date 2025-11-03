@@ -2,6 +2,8 @@
 
 use App\Auth\Controllers\AuthController;
 use App\User\Controllers\UserController;
+use App\DegiroTransaction\Infrastructure\Controllers\UploadDegiroTransactionController;
+use App\DegiroTransaction\Infrastructure\Controllers\ListDegiroTransactionsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -16,4 +18,9 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanc
 
 // Account routes (authenticated)
 Route::get('/account', [UserController::class, 'account'])->middleware('auth:sanctum');
+Route::get('/degiro-transactions/count', [UserController::class, 'degiroTransactionsCount'])->middleware('auth:sanctum');
+
+// Degiro Transaction routes (authenticated)
+Route::post('/upload-degiro-transactions', [UploadDegiroTransactionController::class, 'upload'])->middleware('auth:sanctum');
+Route::get('/degiro-transactions', [ListDegiroTransactionsController::class, 'index'])->middleware('auth:sanctum');
 

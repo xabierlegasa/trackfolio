@@ -19,7 +19,14 @@ cd infra
 docker-compose exec app php artisan migrate
 ```
 
-### Clea caches and restar the app
+### Clear caches and restart the app
+
+**Using Makefile (recommended):**
+```bash
+make clear-cache
+```
+
+**Or manually:**
 ```bash
 cd infra
 docker-compose exec app php artisan route:clear
@@ -28,6 +35,13 @@ docker-compose exec app php artisan cache:clear
 docker-compose exec app composer dump-autoload
 docker-compose restart app
 ```
+
+**Other useful Makefile commands:**
+- `make docker-up` - Start Docker containers
+- `make docker-down` - Stop Docker containers
+- `make restart` - Restart Docker containers
+- `make migrate` - Run database migrations
+- `make help` - Show all available commands
 
 
 

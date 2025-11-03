@@ -46,7 +46,18 @@
     "welcome": "¡Bienvenido a tu panel de control!",
     "accountInfo": "Información de la cuenta",
     "name": "Nombre",
-    "email": "Correo electrónico"
+    "email": "Correo electrónico",
+    "degiroTransactions": {
+      "title": "Transacciones de Degiro",
+      "count": "Tienes {count} transacción(es) de Degiro",
+      "noTransactions": "Aún no has subido ninguna transacción de Degiro.",
+      "viewList": "Ver Lista de Transacciones"
+    },
+    "uploadDegiroData": {
+      "title": "Subir datos de Degiro",
+      "description": "Sube tu archivo CSV de transacciones de Degiro para importar tus datos de trading.",
+      "button": "Subir CSV de transacciones de Degiro"
+    }
   },
   "login": {
     "title": "Iniciar sesión",
@@ -70,6 +81,61 @@
     "name": "Nombre",
     "email": "Correo electrónico",
     "signOut": "Cerrar sesión"
+  },
+  "uploadDegiroTransactions": {
+    "title": "Subir transacciones de Degiro",
+    "description": "Selecciona y sube tu archivo CSV de transacciones de Degiro. El archivo será procesado y tus transacciones serán importadas.",
+    "selectFile": "Seleccionar archivo CSV",
+    "fileSelected": "Archivo seleccionado",
+    "upload": "Subir",
+    "uploading": "Subiendo...",
+    "success": {
+      "title": "¡Subida exitosa!",
+      "message": "{count} transacciones han sido importadas exitosamente.",
+      "newCount": "{count} transacción(es) nueva(s) guardada(s).",
+      "ignoredCount": "{count} transacción(es) ignorada(s) porque ya existían en la base de datos.",
+      "goToDashboard": "Ir al Panel de Control"
+    },
+    "errors": {
+      "noFile": "Por favor selecciona un archivo CSV",
+      "uploadFailed": "Error en la subida. Por favor intenta de nuevo.",
+      "invalidFile": "Archivo inválido. Por favor selecciona un archivo CSV válido.",
+      "validationErrors": "Errores de Validación"
+    }
+  },
+  "degiroTransactionsList": {
+    "title": "Lista de Transacciones de Degiro",
+    "noTransactions": "No se encontraron transacciones.",
+    "table": {
+      "date": "Fecha",
+      "product": "Producto",
+      "quantity": "Cantidad",
+      "price": "Precio",
+      "localValue": "Valor Local",
+      "value": "Valor",
+      "orderId": "Order ID"
+    },
+    "tooltips": {
+      "price": {
+        "title": "Precio Unitario",
+        "description": "El precio por unidad del producto al momento de la transacción."
+      },
+      "localValue": {
+        "title": "Valor Total en Moneda Local",
+        "description": "El valor total de la transacción en la moneda local (la moneda del intercambio donde se realizó la transacción)."
+      },
+      "value": {
+        "title": "Valor Total en Moneda Base",
+        "description": "El valor total de la transacción convertido a tu moneda base (típicamente EUR)."
+      }
+    },
+    "pagination": {
+      "page": "Página {current} de {total}",
+      "itemsPerPage": "Elementos por página"
+    },
+    "modal": {
+      "close": "Cerrar"
+    }
   }
 }
 

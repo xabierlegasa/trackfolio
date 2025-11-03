@@ -1,18 +1,91 @@
-Use Domain-Driven Design (DDD) paradign when organizing classes.
-Use a Bounded Context Structure, following this example:
+---------------------------------
 
-app/
-└── User/                  <-- Bounded Context: "User"
-    ├── Domain/            <-- Core Business Logic
-    │   ├── Entity/
-    │   │   └── User.php
-    │   ├── Service/
-    │   │   └── CreateRandomPasswordService.php
-    │   └── ValueObject/   <-- Value Objects (e.g., Email, Address)
-    │       └── Email.php
-    ├── Infrastructure/    <-- Persistence and External Services Implementation
-    │   └── Repository/
-    │       └── UserRepository.php
-    └── Application/       <-- Coordinates Domain Logic for Use Cases
-        └── UseCase/
-            └── CreateUserUseCase.php
+Use Domain-Driven Design (DDD) paradign when organizing classes.
+Use a Bounded Context Structure, following this example for a specific use case.
+
+app/DegiroTransaction/
+├── Application/
+│   └── UseCase/
+│       └── UploadDegiroTransactionsUseCase.php
+├── Domain/
+│   ├── DTO/
+│   │   └── DegiroTransactionDTO.php
+│   ├── Entity/
+│   │   └── DegiroTransaction.php
+│   └── Services/
+│       ├── ConverterCurrencyToMinUnitService.php
+│       ├── ParseDegiroTransactionRowService.php
+│       └── UploadDegiroTransactionsService.php
+└── Infrastructure/
+    ├── Controllers/
+    │   └── UploadDegiroTransactionController.php
+    └── Repository/
+        └── DegiroTransactionRepository.php
+
+
+---------------------------------
+
+When working with money:
+- use the smallest currency unit (cents) instead of the currency itself when storing in the database.
+- Add "_min_unit" to the column name.
+- Use the currency code after the column name.
+
+Example:
+- Price: 147,6800 USD -> 14768
+- Local value: -147,68 USD -> -14768
+- Value: -125,23 EUR -> -12523
+- Total: -125,73 EUR -> -12573
+
+---------------------------------
+
+The services should be named with the verb in the beginning of the name: 
+Example: ConvertDataToMinUnitService, RegisterUserService, ValidateEmailService, etc.
+
+---------------------------------
+
+As a general rule, services should always return an object, not an array.
+Example:
+Instead of:
+return [
+    'success' => true,
+    'message' => 'Data converted successfully',
+    'data' => $data
+];
+Do this:
+return new SuccessResponse(success: true, message: 'Data converted successfully', data: $data);
+
+---------------------------------
+
+Use DTOs for all data transfer between layers.
+
+Example:
+Instead of:
+return [
+    'success' => true,
+    'message' => 'Data converted successfully',
+    'data' => $data
+];
+Do this:
+return new SuccessResponse(success: true, message: 'Data converted successfully', data: $data);
+
+---------------------------------
+
+Try to use SOLID principles when writing code.
+Example:
+- Single Responsibility Principle
+- Open/Closed Principle
+- Liskov Substitution Principle
+- Interface Segregation Principle
+- Dependency Inversion Principle
+
+---------------------------------
+
+urls should follow the following pattern:
+- /api/count-degiro-transactions (instead of /apidegiro-transactions/count)
+
+---------------------------------
+
+
+
+
+

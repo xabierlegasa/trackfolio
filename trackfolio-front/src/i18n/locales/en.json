@@ -46,7 +46,18 @@
     "welcome": "Welcome to your dashboard!",
     "accountInfo": "Account Information",
     "name": "Name",
-    "email": "Email"
+    "email": "Email",
+    "degiroTransactions": {
+      "title": "Degiro Transactions",
+      "count": "You have {count} transaction(s) from Degiro",
+      "noTransactions": "You haven't uploaded any Degiro transactions yet.",
+      "viewList": "View Transactions List"
+    },
+    "uploadDegiroData": {
+      "title": "Upload Degiro Data",
+      "description": "Upload your Degiro transaction CSV file to import your trading data.",
+      "button": "Upload Degiro Transactions CSV"
+    }
   },
   "login": {
     "title": "Login",
@@ -70,6 +81,61 @@
     "name": "Name",
     "email": "Email",
     "signOut": "Sign Out"
+  },
+  "uploadDegiroTransactions": {
+    "title": "Upload Degiro Transactions",
+    "description": "Select and upload your Degiro transaction CSV file. The file will be processed and your transactions will be imported.",
+    "selectFile": "Select CSV File",
+    "fileSelected": "File selected",
+    "upload": "Upload",
+    "uploading": "Uploading...",
+    "success": {
+      "title": "Upload successful!",
+      "message": "{count} transactions have been imported successfully.",
+      "newCount": "{count} new transaction(s) saved.",
+      "ignoredCount": "{count} transaction(s) were ignored because they already exist in the database.",
+      "goToDashboard": "Go to Dashboard"
+    },
+    "errors": {
+      "noFile": "Please select a CSV file",
+      "uploadFailed": "Upload failed. Please try again.",
+      "invalidFile": "Invalid file. Please select a valid CSV file.",
+      "validationErrors": "Validation Errors"
+    }
+  },
+  "degiroTransactionsList": {
+    "title": "Degiro Transactions List",
+    "noTransactions": "No transactions found.",
+    "table": {
+      "date": "Date",
+      "product": "Product",
+      "quantity": "Quantity",
+      "price": "Price",
+      "localValue": "Local Value",
+      "value": "Value",
+      "orderId": "Order ID"
+    },
+    "tooltips": {
+      "price": {
+        "title": "Unitary Price",
+        "description": "The price per unit of the product at the time of the transaction."
+      },
+      "localValue": {
+        "title": "Total Local Value",
+        "description": "The total value of the transaction in the local currency (the currency of the exchange where the transaction took place)."
+      },
+      "value": {
+        "title": "Total Value in Base Currency",
+        "description": "The total value of the transaction converted to your base currency (typically EUR)."
+      }
+    },
+    "pagination": {
+      "page": "Page {current} of {total}",
+      "itemsPerPage": "Items per page"
+    },
+    "modal": {
+      "close": "Close"
+    }
   }
 }
 

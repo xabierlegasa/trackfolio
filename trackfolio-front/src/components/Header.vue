@@ -1,7 +1,7 @@
 <template>
   <header class="sticky top-0 z-50 bg-base-100 shadow-md">
     <div class="container mx-auto px-4 py-4 flex items-center justify-between">
-      <RouterLink to="/" class="text-2xl font-bold no-underline hover:opacity-80">
+      <RouterLink :to="userStore.account ? '/dashboard' : '/'" class="text-2xl font-bold no-underline hover:opacity-80">
         {{ $t('app.name') }}
       </RouterLink>
       <div class="flex items-center gap-4">

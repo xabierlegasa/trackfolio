@@ -2,30 +2,34 @@
   <div class="container mx-auto p-8">
     <h1 class="text-4xl font-bold mb-8">{{ $t('dashboard.title') }}</h1>
     
-    <div v-if="userStore.isLoading" class="flex justify-center">
+    <div v-if="isLoading" class="flex justify-center">
       <span class="loading loading-spinner loading-lg"></span>
     </div>
 
-    <div v-else-if="userStore.error" class="alert alert-error">
-      <span>{{ userStore.error }}</span>
+    <div v-else-if="error" class="alert alert-error">
+      <span>{{ error }}</span>
     </div>
 
-    <div v-else-if="userStore.account" class="card bg-base-100 shadow-xl">
-      <div class="card-body">
-        <h2 class="card-title">{{ $t('dashboard.accountInfo') }}</h2>
-        <div class="space-y-4">
-          <div>
-            <label class="label">
-              <span class="label-text font-semibold">{{ $t('dashboard.name') }}</span>
-            </label>
-            <p class="text-lg">{{ userStore.account.name }}</p>
-          </div>
-          <div>
-            <label class="label">
-              <span class="label-text font-semibold">{{ $t('dashboard.email') }}</span>
-            </label>
-            <p class="text-lg">{{ userStore.account.email }}</p>
-          </div>
+    <div v-else class="space-y-6">
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title">{{ $t('dashboard.uploadDegiroData.title') }}</h2>
+          <p class="text-base-content/70 mb-4">{{ $t('dashboard.uploadDegiroData.description') }}</p>
+          <RouterLink :to="{ name: 'upload-degiro-transactions' }" class="btn btn-primary">
+            {{ $t('dashboard.uploadDegiroData.button') }}
+          </RouterLink>
+        </div>
+      </div>
+
+      <div v-if="transactionCount !== null && transactionCount > 0" class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title">{{ $t('dashboard.degiroTransactions.title') }}</h2>
+          <p class="text-lg mb-4">
+            {{ $t('dashboard.degiroTransactions.count', { count: transactionCount }) }}
+          </p>
+          <RouterLink :to="{ name: 'degiro-transactions-list' }" class="btn btn-success">
+            {{ $t('dashboard.degiroTransactions.viewList') }}
+          </RouterLink>
         </div>
       </div>
     </div>
@@ -33,17 +37,25 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useUserStore } from '../stores/userStore'
+import { ref, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
+import { authService } from '../services/authService'
 
-const userStore = useUserStore()
+const isLoading = ref(true)
+const error = ref<string | null>(null)
+const transactionCount = ref<number | null>(null)
 
 onMounted(async () => {
   try {
-    await userStore.fetchAccount()
-  } catch (error) {
-    // Error is handled in the store and displayed in template
-    console.error('Failed to load account:', error)
+    isLoading.value = true
+    error.value = null
+    const response = await authService.getDegiroTransactionsCount()
+    transactionCount.value = response.count
+  } catch (err: any) {
+    console.error('Failed to load transaction count:', err)
+    error.value = err.response?.data?.message || 'Failed to load transaction count'
+  } finally {
+    isLoading.value = false
   }
 })
 </script>
