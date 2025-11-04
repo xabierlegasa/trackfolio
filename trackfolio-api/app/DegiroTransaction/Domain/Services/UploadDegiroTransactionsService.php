@@ -79,8 +79,10 @@ class UploadDegiroTransactionsService
 
             foreach ($allParsedTransactions as $transaction) {
                 if (in_array($transaction->orderId, $existingOrderIds)) {
+                    Log::info('Transaction already exists: ' . $transaction->orderId);
                     $ignoredCount++;
                 } else {
+                    Log::info('Transaction does not exist: ' . $transaction->orderId);
                     $newTransactions[] = $transaction;
                 }
             }

@@ -210,17 +210,21 @@ class ValidateDegiroTransactionsCsvService
             $errors[] = "Line {$lineNumber}, column 14 (Exchange rate): Invalid format. Expected numeric value with comma as decimal separator.";
         }
 
-        // Validate Transaction and/or third (column 14): required, valid currency format
+        // Validate Transaction and/or third (column 14): optional, valid currency format if provided
         $transactionAndOrThird = $cleanValue($row[14] ?? null);
-        if ($transactionAndOrThird === null || $transactionAndOrThird === '' || !$this->isValidCurrencyValue($transactionAndOrThird)) {
+        if ($transactionAndOrThird !== null && $transactionAndOrThird !== '' && !$this->isValidCurrencyValue($transactionAndOrThird)) {
             $errors[] = "Line {$lineNumber}, column 15 (Transaction and/or third): Invalid format. Expected numeric value with comma as decimal separator.";
         }
 
-        // Validate Transaction Currency (column 15): required, valid currency code
+        // Validate Transaction Currency (column 15): optional, valid currency code if transaction_and_or_third is provided
         $transactionCurrency = $cleanValue($row[15] ?? null);
-        if ($transactionCurrency === null || $transactionCurrency === '' || !$this->isValidCurrencyCode($transactionCurrency)) {
-            $errors[] = "Line {$lineNumber}, column 16 (Transaction Currency): Invalid currency code.";
+        if ($transactionAndOrThird !== null && $transactionAndOrThird !== '') {
+            // If transaction_and_or_third is provided, currency must be valid
+            if ($transactionCurrency === null || $transactionCurrency === '' || !$this->isValidCurrencyCode($transactionCurrency)) {
+                $errors[] = "Line {$lineNumber}, column 16 (Transaction Currency): Invalid currency code.";
+            }
         }
+        // If transaction_and_or_third is null/empty, currency can also be null/empty (no validation needed)
 
         // Validate Total (column 16): required, valid currency format
         $total = $cleanValue($row[16] ?? null);

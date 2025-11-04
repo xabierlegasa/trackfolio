@@ -57,12 +57,12 @@ class ParseDegiroTransactionRowService
         $orderId = $cleanValue($row[18] ?? null);
 
         // Validate required fields are not null
+        // Note: transactionAndOrThird and transactionCurrency are optional (nullable)
         if ($date === null || $time === null || $product === null || $isin === null || 
             $reference === null || $quantity === null || $priceMinUnit === null || 
             $priceCurrency === null || $localValueMinUnit === null || 
             $localValueCurrency === null || $valueMinUnit === null || 
             $valueCurrency === null || $exchangeRate === null || 
-            $transactionAndOrThird === null || $transactionCurrency === null || 
             $totalMinUnit === null || $totalCurrency === null || $orderId === null) {
             return null;
         }

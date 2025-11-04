@@ -28,8 +28,8 @@ return new class extends Migration
             $table->bigInteger('value_min_unit'); // Value in smallest currency unit (cents), e.g., "-125,23" EUR -> -12523 - NOT NULL
             $table->string('value_currency'); // Currency after Value - NOT NULL
             $table->string('exchange_rate'); // Exchange rate (e.g., "1,18") - NOT NULL
-            $table->string('transaction_and_or_third'); // Transaction and/or third (e.g., "-0,50") - NOT NULL
-            $table->string('transaction_currency'); // Currency after Transaction and/or third - NOT NULL
+            $table->string('transaction_and_or_third')->nullable(); // Transaction and/or third (e.g., "-0,50") - nullable
+            $table->string('transaction_currency')->nullable(); // Currency after Transaction and/or third - nullable (null if transaction_and_or_third is null)
             $table->bigInteger('total_min_unit'); // Total in smallest currency unit (cents), e.g., "-125,73" EUR -> -12573 - NOT NULL
             $table->string('total_currency'); // Currency after Total - NOT NULL
             $table->string('order_id'); // Order ID (UUID) - NOT NULL
