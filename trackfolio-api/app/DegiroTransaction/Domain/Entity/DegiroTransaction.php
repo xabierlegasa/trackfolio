@@ -39,6 +39,7 @@ class DegiroTransaction extends Model
         'total_min_unit',
         'total_currency',
         'order_id',
+        'custom_content_hash',
     ];
 
     /**

@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -25,6 +26,10 @@ class AuthController extends Controller
     {
         $user = $this->registerService->register($request->validated());
 
+        // Automatically authenticate the user after registration
+        Auth::login($user);
+
+        Log::info('User registered and authenticated successfully: ' . $user->email);
         return response()->json([
             'message' => 'User registered successfully',
             'user' => [

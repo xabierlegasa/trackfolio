@@ -238,10 +238,10 @@ class ValidateDegiroTransactionsCsvService
             $errors[] = "Line {$lineNumber}, column 18 (Total Currency): Invalid currency code.";
         }
 
-        // Validate Order ID (column 18): required, valid UUID format
+        // Validate Order ID (column 18): required, but not necessarily unique (can be repeated)
         $orderId = $cleanValue($row[18] ?? null);
-        if ($orderId === null || $orderId === '' || !$this->isValidUuid($orderId)) {
-            $errors[] = "Line {$lineNumber}, column 19 (Order ID): Invalid UUID format.";
+        if ($orderId === null || $orderId === '') {
+            $errors[] = "Line {$lineNumber}, column 19 (Order ID): Order ID is required.";
         }
 
         return $errors;

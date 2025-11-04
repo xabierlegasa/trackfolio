@@ -40,12 +40,12 @@ class UploadDegiroTransactionsService
                 return UploadDegiroTransactionsResult::failure('CSV file is empty or invalid');
             }
 
-            // Get all existing order_ids for this user to check for duplicates
-            $allParsedOrderIds = [];
+            // Get all parsed transactions and their content hashes for duplicate detection
+            $allParsedContentHashes = [];
             $allParsedTransactions = [];
             $lineNumber = 1; // Start at 1 because we already read the header
 
-            // First pass: parse all transactions to collect order_ids
+            // First pass: parse all transactions to collect content hashes
             while (($row = fgetcsv($handle)) !== false) {
                 $lineNumber++;
                 
@@ -59,7 +59,7 @@ class UploadDegiroTransactionsService
                     throw new \RuntimeException("Failed to parse CSV line {$lineNumber}: Invalid or incomplete row data");
                 }
 
-                $allParsedOrderIds[] = $transaction->orderId;
+                $allParsedContentHashes[] = $transaction->customContentHash;
                 $allParsedTransactions[] = $transaction;
             }
 
@@ -69,20 +69,20 @@ class UploadDegiroTransactionsService
                 return UploadDegiroTransactionsResult::failure('No valid transactions found in CSV file');
             }
 
-            Log::info('debu 2');
-            // Check which order_ids already exist in the database
-            $existingOrderIds = $this->repository->findExistingOrderIds($userId, $allParsedOrderIds);
+            // Check which content hashes already exist in the database
+            $existingContentHashes = $this->repository->findExistingContentHashes($userId, $allParsedContentHashes);
+            
+            // Use array_flip for O(1) lookup performance
+            $existingHashesSet = array_flip($existingContentHashes);
             
             // Filter transactions: only add those that don't exist yet
             $newTransactions = [];
             $ignoredCount = 0;
 
             foreach ($allParsedTransactions as $transaction) {
-                if (in_array($transaction->orderId, $existingOrderIds)) {
-                    Log::info('Transaction already exists: ' . $transaction->orderId);
+                if (isset($existingHashesSet[$transaction->customContentHash])) {
                     $ignoredCount++;
                 } else {
-                    Log::info('Transaction does not exist: ' . $transaction->orderId);
                     $newTransactions[] = $transaction;
                 }
             }

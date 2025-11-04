@@ -76,17 +76,17 @@ class DegiroTransactionRepository
     }
 
     /**
-     * Get existing order IDs for a user.
+     * Get existing content hashes for a user.
      *
      * @param int $userId
-     * @param array $orderIds
-     * @return array Array of existing order IDs
+     * @param array $hashes
+     * @return array Array of existing content hashes
      */
-    public function findExistingOrderIds(int $userId, array $orderIds): array
+    public function findExistingContentHashes(int $userId, array $hashes): array
     {
         return DegiroTransaction::where('user_id', $userId)
-            ->whereIn('order_id', $orderIds)
-            ->pluck('order_id')
+            ->whereIn('custom_content_hash', $hashes)
+            ->pluck('custom_content_hash')
             ->toArray();
     }
 }

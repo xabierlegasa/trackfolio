@@ -32,7 +32,8 @@ return new class extends Migration
             $table->string('transaction_currency')->nullable(); // Currency after Transaction and/or third - nullable (null if transaction_and_or_third is null)
             $table->bigInteger('total_min_unit'); // Total in smallest currency unit (cents), e.g., "-125,73" EUR -> -12573 - NOT NULL
             $table->string('total_currency'); // Currency after Total - NOT NULL
-            $table->string('order_id'); // Order ID (UUID) - NOT NULL
+            $table->string('order_id'); // Order ID (UUID) - NOT NULL (not unique, can be repeated)
+            $table->string('custom_content_hash'); // Hash of all column values for duplicate detection - NOT NULL
             
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
@@ -40,7 +41,7 @@ return new class extends Migration
             // Index for faster queries
             $table->index('user_id');
             $table->index('date');
-            $table->unique('order_id');
+            $table->index('custom_content_hash');
         });
     }
 

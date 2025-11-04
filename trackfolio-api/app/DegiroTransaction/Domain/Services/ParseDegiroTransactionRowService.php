@@ -67,6 +67,33 @@ class ParseDegiroTransactionRowService
             return null;
         }
 
+        // Calculate content hash from all column values
+        // Concatenate all values in a consistent order for hashing
+        $contentForHash = implode('|', [
+            $userId,
+            $date,
+            $time,
+            $product,
+            $isin,
+            $reference,
+            $venue ?? '',
+            $quantity,
+            $priceMinUnit,
+            $priceCurrency,
+            $localValueMinUnit,
+            $localValueCurrency,
+            $valueMinUnit,
+            $valueCurrency,
+            $exchangeRate,
+            $transactionAndOrThird ?? '',
+            $transactionCurrency ?? '',
+            $totalMinUnit,
+            $totalCurrency,
+            $orderId,
+        ]);
+        
+        $customContentHash = hash('sha256', $contentForHash);
+
         return new DegiroTransactionDTO(
             userId: $userId,
             date: $date,
@@ -88,6 +115,7 @@ class ParseDegiroTransactionRowService
             totalMinUnit: $totalMinUnit,
             totalCurrency: $totalCurrency,
             orderId: $orderId,
+            customContentHash: $customContentHash,
         );
     }
 }

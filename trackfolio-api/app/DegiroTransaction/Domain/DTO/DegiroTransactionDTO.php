@@ -25,6 +25,7 @@ class DegiroTransactionDTO
         public readonly int $totalMinUnit,
         public readonly string $totalCurrency,
         public readonly string $orderId,
+        public readonly string $customContentHash,
         public readonly ?\Carbon\Carbon $createdAt = null,
         public readonly ?\Carbon\Carbon $updatedAt = null,
     ) {}
@@ -57,6 +58,7 @@ class DegiroTransactionDTO
             'total_min_unit' => $this->totalMinUnit,
             'total_currency' => $this->totalCurrency,
             'order_id' => $this->orderId,
+            'custom_content_hash' => $this->customContentHash,
         ];
 
         if ($this->createdAt !== null) {
