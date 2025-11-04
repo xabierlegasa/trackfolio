@@ -30,21 +30,23 @@ class UploadDegiroTransactionController
 
         $result = $this->uploadUseCase->execute($file, $userId);
 
-        if ($result['success']) {
+        if ($result->success) {
             return response()->json([
-                'message' => $result['message'],
-                'count' => $result['count']
+                'message' => $result->message,
+                'count' => $result->count,
+                'new_count' => $result->newCount,
+                'ignored_count' => $result->ignoredCount,
             ], 201);
         }
 
         $response = [
-            'message' => $result['message'],
+            'message' => $result->message,
             'error' => 'Upload failed'
         ];
 
         // Include validation errors if present
-        if (isset($result['errors']) && !empty($result['errors'])) {
-            $response['errors'] = $result['errors'];
+        if ($result->errors !== null && !empty($result->errors)) {
+            $response['errors'] = $result->errors;
         }
 
         return response()->json($response, 422);

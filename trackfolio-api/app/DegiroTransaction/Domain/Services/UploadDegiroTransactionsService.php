@@ -3,6 +3,7 @@
 namespace App\DegiroTransaction\Domain\Services;
 
 use App\DegiroTransaction\Domain\DTO\DegiroTransactionDTO;
+use App\DegiroTransaction\Domain\DTO\UploadDegiroTransactionsResult;
 use App\DegiroTransaction\Infrastructure\Repository\DegiroTransactionRepository;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
@@ -20,33 +21,23 @@ class UploadDegiroTransactionsService
      *
      * @param UploadedFile $file
      * @param int $userId
-     * @return array{success: bool, message: string, count: int}
+     * @return UploadDegiroTransactionsResult
      */
-    public function processCsv(UploadedFile $file, int $userId): array
+    public function processCsv(UploadedFile $file, int $userId): UploadDegiroTransactionsResult
     {
         try {
             // Open the file
             $handle = fopen($file->getRealPath(), 'r');
             
             if ($handle === false) {
-                return [
-                    'success' => false,
-                    'message' => 'Unable to open CSV file',
-                    'count' => 0
-                ];
+                return UploadDegiroTransactionsResult::failure('Unable to open CSV file');
             }
 
             // Read and skip the header row
             $header = fgetcsv($handle);
             if ($header === false) {
                 fclose($handle);
-                return [
-                    'success' => false,
-                    'message' => 'CSV file is empty or invalid',
-                    'count' => 0,
-                    'new_count' => 0,
-                    'ignored_count' => 0
-                ];
+                return UploadDegiroTransactionsResult::failure('CSV file is empty or invalid');
             }
 
             // Get all existing order_ids for this user to check for duplicates
@@ -63,41 +54,31 @@ class UploadDegiroTransactionsService
                     continue;
                 }
 
-                try {
-                    $transaction = $this->rowParser->parse($row, $userId);
-                    if ($transaction !== null) {
-                        $allParsedOrderIds[] = $transaction->orderId;
-                        $allParsedTransactions[] = $transaction;
-                    }
-                } catch (\Exception $e) {
-                    Log::warning("Failed to parse CSV line {$lineNumber}: " . $e->getMessage());
-                    // Continue processing other rows
-                    continue;
+                $transaction = $this->rowParser->parse($row, $userId);
+                if ($transaction === null) {
+                    throw new \RuntimeException("Failed to parse CSV line {$lineNumber}: Invalid or incomplete row data");
                 }
+
+                $allParsedOrderIds[] = $transaction->orderId;
+                $allParsedTransactions[] = $transaction;
             }
 
             fclose($handle);
 
             if (empty($allParsedTransactions)) {
-                return [
-                    'success' => false,
-                    'message' => 'No valid transactions found in CSV file',
-                    'count' => 0,
-                    'new_count' => 0,
-                    'ignored_count' => 0
-                ];
+                return UploadDegiroTransactionsResult::failure('No valid transactions found in CSV file');
             }
 
+            Log::info('debu 2');
             // Check which order_ids already exist in the database
             $existingOrderIds = $this->repository->findExistingOrderIds($userId, $allParsedOrderIds);
-            $existingOrderIdsSet = array_flip($existingOrderIds);
-
+            
             // Filter transactions: only add those that don't exist yet
             $newTransactions = [];
             $ignoredCount = 0;
 
             foreach ($allParsedTransactions as $transaction) {
-                if (isset($existingOrderIdsSet[$transaction->orderId])) {
+                if (in_array($transaction->orderId, $existingOrderIds)) {
                     $ignoredCount++;
                 } else {
                     $newTransactions[] = $transaction;
@@ -106,13 +87,11 @@ class UploadDegiroTransactionsService
 
             // If no new transactions, return success with ignored count
             if (empty($newTransactions)) {
-                return [
-                    'success' => true,
-                    'message' => "All transactions were already in the database",
-                    'count' => 0,
-                    'new_count' => 0,
-                    'ignored_count' => $ignoredCount
-                ];
+                return UploadDegiroTransactionsResult::success(
+                    "All transactions were already in the database",
+                    0,
+                    $ignoredCount
+                );
             }
 
             // Store only new transactions
@@ -130,34 +109,24 @@ class UploadDegiroTransactionsService
                 $newCount = $this->repository->createMany($transactionArrays);
                 DB::commit();
 
-                return [
-                    'success' => true,
-                    'message' => "{$newCount} Transactions uploaded successfully",
-                    'count' => $newCount,
-                    'new_count' => $newCount,
-                    'ignored_count' => $ignoredCount
-                ];
+                return UploadDegiroTransactionsResult::success(
+                    "{$newCount} Transactions uploaded successfully",
+                    $newCount,
+                    $ignoredCount
+                );
             } catch (\Exception $e) {
                 DB::rollBack();
                 Log::error("Failed to store transactions: " . $e->getMessage());
                 
-                return [
-                    'success' => false,
-                    'message' => 'Failed to store transactions: ' . $e->getMessage(),
-                    'count' => 0,
-                    'new_count' => 0,
-                    'ignored_count' => 0
-                ];
+                return UploadDegiroTransactionsResult::failure(
+                    'Failed to store transactions: ' . $e->getMessage()
+                );
             }
         } catch (\Exception $e) {
             Log::error("Error processing CSV: " . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'Error processing CSV file: ' . $e->getMessage(),
-                'count' => 0,
-                'new_count' => 0,
-                'ignored_count' => 0
-            ];
+            return UploadDegiroTransactionsResult::failure(
+                'Error processing CSV file: ' . $e->getMessage()
+            );
         }
     }
 }

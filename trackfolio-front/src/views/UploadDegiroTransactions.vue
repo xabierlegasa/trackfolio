@@ -12,10 +12,18 @@
             </svg>
             <div class="text-left">
               <h3 class="font-bold text-lg mb-2">{{ $t('uploadDegiroTransactions.success.title') }}</h3>
-              <div class="text-sm space-y-1">
-                <div>{{ $t('uploadDegiroTransactions.success.newCount', { count: newCount }) }}</div>
-                <div v-if="ignoredCount > 0" class="text-warning">
-                  {{ $t('uploadDegiroTransactions.success.ignoredCount', { count: ignoredCount }) }}
+              <div class="text-sm space-y-2">
+                <div class="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-success shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>{{ $t('uploadDegiroTransactions.success.newCount', { count: newCount }) }}</span>
+                </div>
+                <div v-if="ignoredCount > 0" class="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-success shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>{{ $t('uploadDegiroTransactions.success.ignoredCount', { count: ignoredCount }) }}</span>
                 </div>
               </div>
             </div>

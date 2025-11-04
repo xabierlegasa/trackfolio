@@ -2,6 +2,7 @@
 
 namespace App\DegiroTransaction\Application\UseCase;
 
+use App\DegiroTransaction\Domain\DTO\UploadDegiroTransactionsResult;
 use App\DegiroTransaction\Domain\Services\UploadDegiroTransactionsService;
 use App\DegiroTransaction\Domain\Services\ValidateDegiroTransactionsCsvService;
 use Illuminate\Http\UploadedFile;
@@ -18,20 +19,18 @@ class UploadDegiroTransactionsUseCase
      *
      * @param UploadedFile $file
      * @param int $userId
-     * @return array{success: bool, message: string, count: int, errors?: array<string>}
+     * @return UploadDegiroTransactionsResult
      */
-    public function execute(UploadedFile $file, int $userId): array
+    public function execute(UploadedFile $file, int $userId): UploadDegiroTransactionsResult
     {
         // Validate CSV before processing
         $validationResult = $this->validator->validate($file);
         
         if (!$validationResult['valid']) {
-            return [
-                'success' => false,
-                'message' => 'CSV validation failed',
-                'count' => 0,
-                'errors' => $validationResult['errors']
-            ];
+            return UploadDegiroTransactionsResult::failure(
+                'CSV validation failed',
+                $validationResult['errors']
+            );
         }
 
         // If validation passes, process the CSV
