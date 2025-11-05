@@ -75,6 +75,20 @@ export interface DegiroTransactionsListResponse {
   last_page: number
 }
 
+export interface PortfolioHolding {
+  isin: string
+  product: string
+  quantity: number
+}
+
+export interface PortfolioStatsResponse {
+  data: PortfolioHolding[]
+  current_page: number
+  per_page: number
+  total: number
+  last_page: number
+}
+
 export const authService = {
   async getCsrfCookie(): Promise<void> {
     await apiClient.get('/sanctum/csrf-cookie')
@@ -135,6 +149,16 @@ export const authService = {
 
   async getDegiroTransactions(perPage: number = 20, page: number = 1): Promise<DegiroTransactionsListResponse> {
     const response = await apiClient.get<DegiroTransactionsListResponse>('/api/degiro-transactions', {
+      params: {
+        per_page: perPage,
+        page: page
+      }
+    })
+    return response.data
+  },
+
+  async getPortfolioStats(perPage: number = 20, page: number = 1): Promise<PortfolioStatsResponse> {
+    const response = await apiClient.get<PortfolioStatsResponse>('/api/portfolio-stats', {
       params: {
         per_page: perPage,
         page: page

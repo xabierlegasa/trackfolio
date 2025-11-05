@@ -57,6 +57,11 @@
       "title": "Subir datos de Degiro",
       "description": "Sube tu archivo CSV de transacciones de Degiro para importar tus datos de trading.",
       "button": "Subir CSV de transacciones de Degiro"
+    },
+    "portfolioStats": {
+      "title": "Estadísticas",
+      "description": "Visualiza la composición actual de tu cartera basada en todas tus transacciones.",
+      "button": "Ver Estadísticas"
     }
   },
   "login": {
@@ -135,6 +140,18 @@
     },
     "modal": {
       "close": "Cerrar"
+    }
+  },
+  "portfolioStats": {
+    "title": "Estadísticas de Cartera",
+    "noHoldings": "No se encontraron posiciones. Tu cartera está vacía.",
+    "table": {
+      "product": "Producto",
+      "quantity": "Cantidad"
+    },
+    "pagination": {
+      "page": "Página {current} de {total}",
+      "itemsPerPage": "Elementos por página"
     }
   }
 }

@@ -4,6 +4,7 @@ use App\Auth\Controllers\AuthController;
 use App\User\Controllers\UserController;
 use App\DegiroTransaction\Infrastructure\Controllers\UploadDegiroTransactionController;
 use App\DegiroTransaction\Infrastructure\Controllers\ListDegiroTransactionsController;
+use App\DegiroTransaction\Infrastructure\Controllers\PortfolioStatsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -28,5 +29,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Degiro Transaction routes
     Route::post('/upload-degiro-transactions', [UploadDegiroTransactionController::class, 'upload']);
     Route::get('/degiro-transactions', [ListDegiroTransactionsController::class, 'index']);
+    
+    // Portfolio Statistics routes
+    Route::get('/portfolio-stats', [PortfolioStatsController::class, 'index']);
 });
 

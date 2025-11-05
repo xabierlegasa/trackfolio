@@ -6,6 +6,7 @@ import Dashboard from '../views/Dashboard.vue'
 import Account from '../views/Account.vue'
 import UploadDegiroTransactions from '../views/UploadDegiroTransactions.vue'
 import DegiroTransactionsList from '../views/DegiroTransactionsList.vue'
+import PortfolioStats from '../views/PortfolioStats.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -44,6 +45,11 @@ const router = createRouter({
       path: '/degiro-transactions',
       name: 'degiro-transactions-list',
       component: DegiroTransactionsList
+    },
+    {
+      path: '/stats',
+      name: 'portfolio-stats',
+      component: PortfolioStats
     }
   ]
 })

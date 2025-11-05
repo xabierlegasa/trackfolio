@@ -32,6 +32,16 @@
           </RouterLink>
         </div>
       </div>
+
+      <div v-if="transactionCount !== null && transactionCount > 0" class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title">{{ $t('dashboard.portfolioStats.title') }}</h2>
+          <p class="text-base-content/70 mb-4">{{ $t('dashboard.portfolioStats.description') }}</p>
+          <RouterLink :to="{ name: 'portfolio-stats' }" class="btn btn-primary">
+            {{ $t('dashboard.portfolioStats.button') }}
+          </RouterLink>
+        </div>
+      </div>
     </div>
   </div>
 </template>

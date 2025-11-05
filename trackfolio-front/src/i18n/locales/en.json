@@ -57,6 +57,11 @@
       "title": "Upload Degiro Data",
       "description": "Upload your Degiro transaction CSV file to import your trading data.",
       "button": "Upload Degiro Transactions CSV"
+    },
+    "portfolioStats": {
+      "title": "Statistics",
+      "description": "View your current portfolio composition based on all your transactions.",
+      "button": "View Statistics"
     }
   },
   "login": {
@@ -135,6 +140,18 @@
     },
     "modal": {
       "close": "Close"
+    }
+  },
+  "portfolioStats": {
+    "title": "Portfolio Statistics",
+    "noHoldings": "No holdings found. Your portfolio is empty.",
+    "table": {
+      "product": "Product",
+      "quantity": "Quantity"
+    },
+    "pagination": {
+      "page": "Page {current} of {total}",
+      "itemsPerPage": "Items per page"
     }
   }
 }

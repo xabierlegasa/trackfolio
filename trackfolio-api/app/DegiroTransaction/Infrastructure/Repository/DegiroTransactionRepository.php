@@ -88,5 +88,52 @@ class DegiroTransactionRepository
             ->pluck('custom_content_hash')
             ->toArray();
     }
+
+    /**
+     * Get portfolio holdings for a user, grouped by ISIN.
+     * Returns products with non-zero quantities, ordered by quantity descending.
+     *
+     * @param int $userId
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getPortfolioHoldings(int $userId, int $perPage = 20)
+    {
+        // Get aggregated holdings grouped by ISIN (without product name to avoid GROUP BY issues)
+        $holdings = DegiroTransaction::where('user_id', $userId)
+            ->selectRaw('isin, SUM(quantity) as total_quantity')
+            ->groupBy('isin')
+            ->havingRaw('SUM(quantity) != 0')
+            ->orderByRaw('SUM(quantity) DESC')
+            ->paginate($perPage);
+
+        // Get all ISINs from the holdings
+        $isins = $holdings->getCollection()->pluck('isin')->toArray();
+
+        // Get the latest product name for each ISIN (only if we have ISINs)
+        $latestProducts = collect();
+        if (!empty($isins)) {
+            $latestProducts = DegiroTransaction::where('user_id', $userId)
+                ->whereIn('isin', $isins)
+                ->select('isin', 'product', 'id')
+                ->orderBy('id', 'desc')
+                ->get()
+                ->groupBy('isin')
+                ->map(function ($transactions) {
+                    // Get the first (latest) transaction for each ISIN
+                    return $transactions->first()->product;
+                });
+        }
+
+        // Transform the holdings to add product name and ensure quantity is a float
+        $holdings->getCollection()->transform(function ($holding) use ($latestProducts) {
+            $holding->product = $latestProducts->get($holding->isin) ?? '';
+            $holding->quantity = (float) $holding->total_quantity;
+            unset($holding->total_quantity);
+            return $holding;
+        });
+
+        return $holdings;
+    }
 }
 
