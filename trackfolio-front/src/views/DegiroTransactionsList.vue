@@ -73,10 +73,10 @@
                   <td class="whitespace-nowrap">{{ formatDate(transaction.date) }}</td>
                   <td class="whitespace-nowrap">{{ transaction.product }}</td>
                   <td class="whitespace-nowrap text-right">{{ transaction.quantity }}</td>
-                  <td class="whitespace-nowrap text-right">{{ formatCurrency(transaction.price_min_unit, transaction.price_currency) }}</td>
+                  <td class="whitespace-nowrap text-right">{{ formatPrice(transaction.price_ten_thousandths, transaction.price_currency) }}</td>
                   <td class="whitespace-nowrap text-right">{{ formatCurrency(transaction.local_value_min_unit, transaction.local_value_currency) }}</td>
                   <td class="whitespace-nowrap text-right">{{ formatCurrency(transaction.value_min_unit, transaction.value_currency) }}</td>
-                  <td class="whitespace-nowrap">{{ transaction.order_id }}</td>
+                  <td class="whitespace-nowrap">{{ transaction.order_id || '-' }}</td>
                 </tr>
               </tbody>
             </table>
@@ -163,6 +163,17 @@ const formatCurrency = (amountInCents: number, currency: string): string => {
     currency: currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
+  }).format(amount)
+  return `${formatted} ${currency}`
+}
+
+const formatPrice = (amountInTenThousandths: number, currency: string): string => {
+  const amount = amountInTenThousandths / 10000
+  const formatted = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4
   }).format(amount)
   return `${formatted} ${currency}`
 }

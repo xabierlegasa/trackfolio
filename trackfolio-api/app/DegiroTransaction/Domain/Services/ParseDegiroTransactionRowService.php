@@ -42,8 +42,15 @@ class ParseDegiroTransactionRowService
         $isin = $cleanValue($row[3] ?? null);
         $reference = $cleanValue($row[4] ?? null);
         $venue = $cleanValue($row[5] ?? null);
-        $quantity = is_numeric($row[6] ?? null) ? (int)$row[6] : null;
-        $priceMinUnit = $this->currencyConverter->convertToCents($row[7] ?? null);
+        // Parse quantity as float (supports decimal values like 0,004727)
+        $quantityRaw = $cleanValue($row[6] ?? null);
+        $quantity = null;
+        if ($quantityRaw !== null && $quantityRaw !== '') {
+            // Convert comma to dot for parsing
+            $standard = str_replace(',', '.', $quantityRaw);
+            $quantity = is_numeric($standard) ? (float)$standard : null;
+        }
+        $priceTenThousandths = $this->currencyConverter->convertToTenThousandths($row[7] ?? null);
         $priceCurrency = $cleanValue($row[8] ?? null);
         $localValueMinUnit = $this->currencyConverter->convertToCents($row[9] ?? null);
         $localValueCurrency = $cleanValue($row[10] ?? null);
@@ -57,18 +64,19 @@ class ParseDegiroTransactionRowService
         $orderId = $cleanValue($row[18] ?? null);
 
         // Validate required fields are not null
-        // Note: transactionAndOrThird and transactionCurrency are optional (nullable)
+        // Note: exchangeRate, transactionAndOrThird, transactionCurrency, and orderId are optional (nullable)
         if ($date === null || $time === null || $product === null || $isin === null || 
-            $reference === null || $quantity === null || $priceMinUnit === null || 
+            $reference === null || $quantity === null || $priceTenThousandths === null || 
             $priceCurrency === null || $localValueMinUnit === null || 
             $localValueCurrency === null || $valueMinUnit === null || 
-            $valueCurrency === null || $exchangeRate === null || 
-            $totalMinUnit === null || $totalCurrency === null || $orderId === null) {
+            $valueCurrency === null || 
+            $totalMinUnit === null || $totalCurrency === null) {
             return null;
         }
 
         // Calculate content hash from all column values
         // Concatenate all values in a consistent order for hashing
+        // Note: Format quantity as string with fixed precision for consistent hashing
         $contentForHash = implode('|', [
             $userId,
             $date,
@@ -77,19 +85,19 @@ class ParseDegiroTransactionRowService
             $isin,
             $reference,
             $venue ?? '',
-            $quantity,
-            $priceMinUnit,
+            number_format($quantity, 10, '.', ''), // Format with 10 decimal places, dot separator
+            $priceTenThousandths,
             $priceCurrency,
             $localValueMinUnit,
             $localValueCurrency,
             $valueMinUnit,
             $valueCurrency,
-            $exchangeRate,
+            $exchangeRate ?? '',
             $transactionAndOrThird ?? '',
             $transactionCurrency ?? '',
             $totalMinUnit,
             $totalCurrency,
-            $orderId,
+            $orderId ?? '',
         ]);
         
         $customContentHash = hash('sha256', $contentForHash);
@@ -103,7 +111,7 @@ class ParseDegiroTransactionRowService
             reference: $reference,
             venue: $venue,
             quantity: $quantity,
-            priceMinUnit: $priceMinUnit,
+            priceTenThousandths: $priceTenThousandths,
             priceCurrency: $priceCurrency,
             localValueMinUnit: $localValueMinUnit,
             localValueCurrency: $localValueCurrency,

@@ -57,13 +57,13 @@ export interface DegiroTransaction {
   time: string
   product: string
   quantity: number
-  price_min_unit: number
+  price_ten_thousandths: number
   price_currency: string
   local_value_min_unit: number
   local_value_currency: string
   value_min_unit: number
   value_currency: string
-  order_id: string
+  order_id: string | null
   [key: string]: any
 }
 

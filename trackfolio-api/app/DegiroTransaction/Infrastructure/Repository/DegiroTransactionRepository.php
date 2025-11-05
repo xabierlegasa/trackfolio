@@ -61,7 +61,7 @@ class DegiroTransactionRepository
     }
 
     /**
-     * Get paginated transactions for a user, ordered by date (most recent first).
+     * Get paginated transactions for a user, ordered by ID (most recent first).
      *
      * @param int $userId
      * @param int $perPage
@@ -70,8 +70,7 @@ class DegiroTransactionRepository
     public function findPaginatedByUserId(int $userId, int $perPage = 20)
     {
         return DegiroTransaction::where('user_id', $userId)
-            ->orderBy('date', 'desc')
-            ->orderBy('time', 'desc')
+            ->orderBy('id', 'desc')
             ->paginate($perPage);
     }
 

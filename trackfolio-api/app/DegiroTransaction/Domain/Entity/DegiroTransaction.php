@@ -27,7 +27,7 @@ class DegiroTransaction extends Model
         'reference',
         'venue',
         'quantity',
-        'price_min_unit',
+        'price_ten_thousandths',
         'price_currency',
         'local_value_min_unit',
         'local_value_currency',

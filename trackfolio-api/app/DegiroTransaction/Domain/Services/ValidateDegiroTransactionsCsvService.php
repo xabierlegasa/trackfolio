@@ -23,7 +23,7 @@ class ValidateDegiroTransactionsCsvService
     /**
      * Valid currency codes (ISO 4217).
      */
-    private const VALID_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD'];
+    private const VALID_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD', 'HKD'];
 
     /**
      * Validate the CSV file structure and data format.
@@ -128,14 +128,20 @@ class ValidateDegiroTransactionsCsvService
 
         // Validate Date (column 0): DD-MM-YYYY format
         $date = $cleanValue($row[0] ?? null);
-        if ($date === null || !$this->isValidDate($date)) {
-            $errors[] = "Line {$lineNumber}, column 1 (Date): Invalid date format. Expected DD-MM-YYYY format.";
+        if ($date === null || $date === '') {
+            $errors[] = "Line {$lineNumber}, column 1 (Date): Date is required.";
+        } elseif (!$this->isValidDate($date)) {
+            $dateDisplay = $date !== null ? "'{$date}'" : 'empty';
+            $errors[] = "Line {$lineNumber}, column 1 (Date): Invalid date format. Expected DD-MM-YYYY format. Value: {$dateDisplay}.";
         }
 
         // Validate Time (column 1): HH:MM format
         $time = $cleanValue($row[1] ?? null);
-        if ($time === null || !$this->isValidTime($time)) {
-            $errors[] = "Line {$lineNumber}, column 2 (Time): Invalid time format. Expected HH:MM format.";
+        if ($time === null || $time === '') {
+            $errors[] = "Line {$lineNumber}, column 2 (Time): Time is required.";
+        } elseif (!$this->isValidTime($time)) {
+            $timeDisplay = $time !== null ? "'{$time}'" : 'empty';
+            $errors[] = "Line {$lineNumber}, column 2 (Time): Invalid time format. Expected HH:MM format. Value: {$timeDisplay}.";
         }
 
         // Validate Product (column 2): required string
@@ -144,10 +150,13 @@ class ValidateDegiroTransactionsCsvService
             $errors[] = "Line {$lineNumber}, column 3 (Product): Product name is required.";
         }
 
-        // Validate ISIN (column 3): required, valid ISIN format
+        // Validate ISIN (column 3): required, minimum 6 characters
+        // Note: Not validating ISIN format as Degiro now includes Bitcoin and other non-standard identifiers
         $isin = $cleanValue($row[3] ?? null);
-        if ($isin === null || $isin === '' || !$this->isValidIsin($isin)) {
-            $errors[] = "Line {$lineNumber}, column 4 (ISIN): Invalid ISIN format.";
+        if ($isin === null || $isin === '') {
+            $errors[] = "Line {$lineNumber}, column 4 (ISIN): ISIN is required.";
+        } elseif (strlen($isin) < 6) {
+            $errors[] = "Line {$lineNumber}, column 4 (ISIN): ISIN must be at least 6 characters long. Value: '{$isin}' (length: " . strlen($isin) . ").";
         }
 
         // Validate Reference (column 4): required string
@@ -158,91 +167,105 @@ class ValidateDegiroTransactionsCsvService
 
         // Venue (column 5): optional, no validation needed
 
-        // Validate Quantity (column 6): required integer (can be negative for sell orders)
+        // Validate Quantity (column 6): required decimal number (can be negative, zero, or positive; supports decimals like 0,004727)
         $quantity = $cleanValue($row[6] ?? null);
         if ($quantity === null || $quantity === '') {
             $errors[] = "Line {$lineNumber}, column 7 (Quantity): Quantity is required.";
-        } elseif (!preg_match('/^-?\d+$/', $quantity)) {
-            $errors[] = "Line {$lineNumber}, column 7 (Quantity): Quantity must be an integer.";
-        } elseif ((int)$quantity === 0) {
-            $errors[] = "Line {$lineNumber}, column 7 (Quantity): Quantity must be a non-zero integer.";
+        } elseif (!preg_match('/^-?\d+([,.]\d+)?$/', $quantity)) {
+            $errors[] = "Line {$lineNumber}, column 7 (Quantity): Quantity '{$quantity}' must be a valid number.";
         }
+        // Note: Quantity can be 0, so no zero check needed
 
         // Validate Price (column 7): required, valid currency format
         $price = $cleanValue($row[7] ?? null);
-        if ($price === null || $price === '' || !$this->isValidCurrencyValue($price)) {
-            $errors[] = "Line {$lineNumber}, column 8 (Price): Invalid price format. Expected numeric value with comma as decimal separator.";
+        if ($price === null || $price === '') {
+            $errors[] = "Line {$lineNumber}, column 8 (Price): Price is required.";
+        } elseif (!$this->isValidCurrencyValue($price)) {
+            $errors[] = "Line {$lineNumber}, column 8 (Price): Invalid price format. Expected numeric value with comma as decimal separator. Value: '{$price}'.";
         }
 
         // Validate Price Currency (column 8): required, valid currency code
         $priceCurrency = $cleanValue($row[8] ?? null);
-        if ($priceCurrency === null || $priceCurrency === '' || !$this->isValidCurrencyCode($priceCurrency)) {
-            $errors[] = "Line {$lineNumber}, column 9 (Price Currency): Invalid currency code.";
+        if ($priceCurrency === null || $priceCurrency === '') {
+            $errors[] = "Line {$lineNumber}, column 9 (Price Currency): Price currency is required.";
+        } elseif (!$this->isValidCurrencyCode($priceCurrency)) {
+            $errors[] = "Line {$lineNumber}, column 9 (Price Currency): Invalid currency code. Value: '{$priceCurrency}'.";
         }
 
         // Validate Local value (column 9): required, valid currency format
         $localValue = $cleanValue($row[9] ?? null);
-        if ($localValue === null || $localValue === '' || !$this->isValidCurrencyValue($localValue)) {
-            $errors[] = "Line {$lineNumber}, column 10 (Local value): Invalid format. Expected numeric value with comma as decimal separator.";
+        if ($localValue === null || $localValue === '') {
+            $errors[] = "Line {$lineNumber}, column 10 (Local value): Local value is required.";
+        } elseif (!$this->isValidCurrencyValue($localValue)) {
+            $errors[] = "Line {$lineNumber}, column 10 (Local value): Invalid format. Expected numeric value with comma as decimal separator. Value: '{$localValue}'.";
         }
 
         // Validate Local value Currency (column 10): required, valid currency code
         $localValueCurrency = $cleanValue($row[10] ?? null);
-        if ($localValueCurrency === null || $localValueCurrency === '' || !$this->isValidCurrencyCode($localValueCurrency)) {
-            $errors[] = "Line {$lineNumber}, column 11 (Local value Currency): Invalid currency code.";
+        if ($localValueCurrency === null || $localValueCurrency === '') {
+            $errors[] = "Line {$lineNumber}, column 11 (Local value Currency): Local value currency is required.";
+        } elseif (!$this->isValidCurrencyCode($localValueCurrency)) {
+            $errors[] = "Line {$lineNumber}, column 11 (Local value Currency): Invalid currency code. Value: '{$localValueCurrency}'.";
         }
 
         // Validate Value (column 11): required, valid currency format
         $value = $cleanValue($row[11] ?? null);
-        if ($value === null || $value === '' || !$this->isValidCurrencyValue($value)) {
-            $errors[] = "Line {$lineNumber}, column 12 (Value): Invalid format. Expected numeric value with comma as decimal separator.";
+        if ($value === null || $value === '') {
+            $errors[] = "Line {$lineNumber}, column 12 (Value): Value is required.";
+        } elseif (!$this->isValidCurrencyValue($value)) {
+            $errors[] = "Line {$lineNumber}, column 12 (Value): Invalid format. Expected numeric value with comma as decimal separator. Value: '{$value}'.";
         }
 
         // Validate Value Currency (column 12): required, valid currency code
         $valueCurrency = $cleanValue($row[12] ?? null);
-        if ($valueCurrency === null || $valueCurrency === '' || !$this->isValidCurrencyCode($valueCurrency)) {
-            $errors[] = "Line {$lineNumber}, column 13 (Value Currency): Invalid currency code.";
+        if ($valueCurrency === null || $valueCurrency === '') {
+            $errors[] = "Line {$lineNumber}, column 13 (Value Currency): Value currency is required.";
+        } elseif (!$this->isValidCurrencyCode($valueCurrency)) {
+            $errors[] = "Line {$lineNumber}, column 13 (Value Currency): Invalid currency code. Value: '{$valueCurrency}'.";
         }
 
-        // Validate Exchange rate (column 13): required, valid decimal format
+        // Validate Exchange rate (column 13): optional, valid decimal format if provided
         $exchangeRate = $cleanValue($row[13] ?? null);
-        if ($exchangeRate === null || $exchangeRate === '' || !$this->isValidCurrencyValue($exchangeRate)) {
-            $errors[] = "Line {$lineNumber}, column 14 (Exchange rate): Invalid format. Expected numeric value with comma as decimal separator.";
+        if ($exchangeRate !== null && $exchangeRate !== '' && !$this->isValidCurrencyValue($exchangeRate)) {
+            $errors[] = "Line {$lineNumber}, column 14 (Exchange rate): Invalid format. Expected numeric value with comma as decimal separator. Value: '{$exchangeRate}'.";
         }
 
         // Validate Transaction and/or third (column 14): optional, valid currency format if provided
         $transactionAndOrThird = $cleanValue($row[14] ?? null);
         if ($transactionAndOrThird !== null && $transactionAndOrThird !== '' && !$this->isValidCurrencyValue($transactionAndOrThird)) {
-            $errors[] = "Line {$lineNumber}, column 15 (Transaction and/or third): Invalid format. Expected numeric value with comma as decimal separator.";
+            $errors[] = "Line {$lineNumber}, column 15 (Transaction and/or third): Invalid format. Expected numeric value with comma as decimal separator. Value: '{$transactionAndOrThird}'.";
         }
 
         // Validate Transaction Currency (column 15): optional, valid currency code if transaction_and_or_third is provided
         $transactionCurrency = $cleanValue($row[15] ?? null);
         if ($transactionAndOrThird !== null && $transactionAndOrThird !== '') {
             // If transaction_and_or_third is provided, currency must be valid
-            if ($transactionCurrency === null || $transactionCurrency === '' || !$this->isValidCurrencyCode($transactionCurrency)) {
-                $errors[] = "Line {$lineNumber}, column 16 (Transaction Currency): Invalid currency code.";
+            if ($transactionCurrency === null || $transactionCurrency === '') {
+                $errors[] = "Line {$lineNumber}, column 16 (Transaction Currency): Transaction currency is required when transaction and/or third is provided.";
+            } elseif (!$this->isValidCurrencyCode($transactionCurrency)) {
+                $errors[] = "Line {$lineNumber}, column 16 (Transaction Currency): Invalid currency code. Value: '{$transactionCurrency}'.";
             }
         }
         // If transaction_and_or_third is null/empty, currency can also be null/empty (no validation needed)
 
         // Validate Total (column 16): required, valid currency format
         $total = $cleanValue($row[16] ?? null);
-        if ($total === null || $total === '' || !$this->isValidCurrencyValue($total)) {
-            $errors[] = "Line {$lineNumber}, column 17 (Total): Invalid format. Expected numeric value with comma as decimal separator.";
+        if ($total === null || $total === '') {
+            $errors[] = "Line {$lineNumber}, column 17 (Total): Total is required.";
+        } elseif (!$this->isValidCurrencyValue($total)) {
+            $errors[] = "Line {$lineNumber}, column 17 (Total): Invalid format. Expected numeric value with comma as decimal separator. Value: '{$total}'.";
         }
 
         // Validate Total Currency (column 17): required, valid currency code
         $totalCurrency = $cleanValue($row[17] ?? null);
-        if ($totalCurrency === null || $totalCurrency === '' || !$this->isValidCurrencyCode($totalCurrency)) {
-            $errors[] = "Line {$lineNumber}, column 18 (Total Currency): Invalid currency code.";
+        if ($totalCurrency === null || $totalCurrency === '') {
+            $errors[] = "Line {$lineNumber}, column 18 (Total Currency): Total currency is required.";
+        } elseif (!$this->isValidCurrencyCode($totalCurrency)) {
+            $errors[] = "Line {$lineNumber}, column 18 (Total Currency): Invalid currency code. Value: '{$totalCurrency}'.";
         }
 
-        // Validate Order ID (column 18): required, but not necessarily unique (can be repeated)
-        $orderId = $cleanValue($row[18] ?? null);
-        if ($orderId === null || $orderId === '') {
-            $errors[] = "Line {$lineNumber}, column 19 (Order ID): Order ID is required.";
-        }
+        // Validate Order ID (column 18): optional (can be null or empty)
+        // No validation needed as order_id is optional
 
         return $errors;
     }
@@ -292,17 +315,6 @@ class ValidateDegiroTransactionsCsvService
         return $hour >= 0 && $hour <= 23 && $minute >= 0 && $minute <= 59;
     }
 
-    /**
-     * Validate ISIN format.
-     *
-     * @param string $isin
-     * @return bool
-     */
-    private function isValidIsin(string $isin): bool
-    {
-        // ISIN format: 2 letters (country code) + 9 alphanumeric characters + 1 check digit
-        return preg_match('/^[A-Z]{2}[A-Z0-9]{9}\d$/', $isin) === 1;
-    }
 
     /**
      * Validate currency value format (numeric with comma as decimal separator).

@@ -20,19 +20,19 @@ return new class extends Migration
             $table->string('isin'); // ISIN code - NOT NULL
             $table->string('reference'); // Reference (e.g., NSY, NDQ) - NOT NULL
             $table->string('venue')->nullable(); // Venue - nullable (empty in sample)
-            $table->integer('quantity'); // Quantity - NOT NULL
-            $table->bigInteger('price_min_unit'); // Price in smallest currency unit (cents), e.g., "147,6800" USD -> 14768 - NOT NULL
+            $table->decimal('quantity', 20, 10); // Quantity - NOT NULL (supports decimal values like 0,004727 for Bitcoin)
+            $table->bigInteger('price_ten_thousandths'); // Price in ten-thousandths of a unit, e.g., "147,6800" USD -> 1476800 - NOT NULL
             $table->string('price_currency'); // Currency after Price column - NOT NULL
             $table->bigInteger('local_value_min_unit'); // Local value in smallest currency unit (cents), e.g., "-147,68" USD -> -14768 - NOT NULL
             $table->string('local_value_currency'); // Currency after Local value - NOT NULL
             $table->bigInteger('value_min_unit'); // Value in smallest currency unit (cents), e.g., "-125,23" EUR -> -12523 - NOT NULL
             $table->string('value_currency'); // Currency after Value - NOT NULL
-            $table->string('exchange_rate'); // Exchange rate (e.g., "1,18") - NOT NULL
+            $table->string('exchange_rate')->nullable(); // Exchange rate (e.g., "1,18") - nullable
             $table->string('transaction_and_or_third')->nullable(); // Transaction and/or third (e.g., "-0,50") - nullable
             $table->string('transaction_currency')->nullable(); // Currency after Transaction and/or third - nullable (null if transaction_and_or_third is null)
             $table->bigInteger('total_min_unit'); // Total in smallest currency unit (cents), e.g., "-125,73" EUR -> -12573 - NOT NULL
             $table->string('total_currency'); // Currency after Total - NOT NULL
-            $table->string('order_id'); // Order ID (UUID) - NOT NULL (not unique, can be repeated)
+            $table->string('order_id')->nullable(); // Order ID - nullable (not unique, can be repeated)
             $table->string('custom_content_hash'); // Hash of all column values for duplicate detection - NOT NULL
             
             $table->timestamp('created_at')->useCurrent();
