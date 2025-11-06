@@ -22,7 +22,7 @@ class PortfolioStatsController
     public function index(Request $request): JsonResponse
     {
         $user = Auth::user();
-        $perPage = (int) $request->get('per_page', 20);
+        $perPage = (int) $request->get('per_page', 10);
 
         // Ensure per_page is within reasonable bounds
         $perPage = max(1, min($perPage, 100));

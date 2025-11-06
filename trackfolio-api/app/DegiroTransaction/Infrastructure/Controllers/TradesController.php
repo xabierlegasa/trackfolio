@@ -7,14 +7,14 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-class ListDegiroTransactionsController
+class TradesController
 {
     public function __construct(
         private DegiroTransactionRepository $repository
     ) {}
 
     /**
-     * Get paginated list of Degiro transactions for the authenticated user.
+     * Get paginated closed trades for the authenticated user.
      *
      * @param Request $request
      * @return JsonResponse
@@ -23,18 +23,20 @@ class ListDegiroTransactionsController
     {
         $user = Auth::user();
         $perPage = (int) $request->get('per_page', 10);
+        $sortBy = $request->get('sort_by', 'last_sale_date');
+        $sortOrder = $request->get('sort_order', 'desc');
 
         // Ensure per_page is within reasonable bounds
         $perPage = max(1, min($perPage, 100));
 
-        $transactions = $this->repository->findPaginatedByUserId($user->id, $perPage);
+        $trades = $this->repository->getClosedTrades($user->id, $perPage, $sortBy, $sortOrder);
 
         return response()->json([
-            'data' => $transactions->items(),
-            'current_page' => $transactions->currentPage(),
-            'per_page' => $transactions->perPage(),
-            'total' => $transactions->total(),
-            'last_page' => $transactions->lastPage(),
+            'data' => $trades->items(),
+            'current_page' => $trades->currentPage(),
+            'per_page' => $trades->perPage(),
+            'total' => $trades->total(),
+            'last_page' => $trades->lastPage(),
         ]);
     }
 }

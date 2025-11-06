@@ -42,7 +42,7 @@
     }
   },
   "dashboard": {
-    "title": "Panel de control",
+    "title": "Dashboard",
     "welcome": "¡Bienvenido a tu panel de control!",
     "accountInfo": "Información de la cuenta",
     "name": "Nombre",
@@ -59,9 +59,9 @@
       "button": "Subir CSV de transacciones de Degiro"
     },
     "portfolioStats": {
-      "title": "Estadísticas",
+      "title": "Stats",
       "description": "Visualiza la composición actual de tu cartera basada en todas tus transacciones.",
-      "button": "Ver Estadísticas"
+      "button": "Ver Stats"
     }
   },
   "login": {
@@ -142,8 +142,26 @@
       "close": "Cerrar"
     }
   },
+  "statistics": {
+    "title": "Stats",
+    "portfolio": {
+      "title": "Cartera",
+      "description": "Visualiza la composición actual de tu cartera basada en todas tus transacciones.",
+      "button": "Ver Cartera"
+    },
+    "trades": {
+      "title": "Trades",
+      "description": "Visualiza tus trades cerrados con información de ganancias/pérdidas.",
+      "button": "Ver Trades"
+    },
+    "tradesSummary": {
+      "title": "Resumen de Trades cerrados",
+      "description": "Visualiza el resumen de todos tus trades cerrados con ganancias y pérdidas totales.",
+      "button": "Ver Resumen de Trades cerrados"
+    }
+  },
   "portfolioStats": {
-    "title": "Estadísticas de Cartera",
+    "title": "Stats de Cartera",
     "noHoldings": "No se encontraron posiciones. Tu cartera está vacía.",
     "table": {
       "product": "Producto",
@@ -153,6 +171,26 @@
       "page": "Página {current} de {total}",
       "itemsPerPage": "Elementos por página"
     }
+  },
+  "trades": {
+    "title": "Trades",
+    "noTrades": "No se encontraron trades cerrados.",
+    "table": {
+      "product": "Producto",
+      "profitLoss": "Ganancia/Pérdida",
+      "firstPurchaseDate": "Primera Compra",
+      "lastSaleDate": "Última Venta"
+    },
+    "pagination": {
+      "page": "Página {current} de {total}",
+      "itemsPerPage": "Elementos por página"
+    }
+  },
+  "tradeSummary": {
+    "title": "Resumen de Trades cerrados",
+    "positiveSum": "Positivo",
+    "negativeSum": "Negativo",
+    "difference": "Diferencia"
   }
 }
 

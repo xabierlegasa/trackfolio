@@ -37,7 +37,7 @@
         <div class="card-body">
           <h2 class="card-title">{{ $t('dashboard.portfolioStats.title') }}</h2>
           <p class="text-base-content/70 mb-4">{{ $t('dashboard.portfolioStats.description') }}</p>
-          <RouterLink :to="{ name: 'portfolio-stats' }" class="btn btn-primary">
+          <RouterLink :to="{ name: 'statistics' }" class="btn btn-primary">
             {{ $t('dashboard.portfolioStats.button') }}
           </RouterLink>
         </div>

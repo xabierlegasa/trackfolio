@@ -43,6 +43,7 @@
                 <span class="label-text">{{ $t('portfolioStats.pagination.itemsPerPage') }}:</span>
               </label>
               <select v-model="perPage" @change="handlePerPageChange" class="select select-bordered select-sm">
+                <option :value="10">10</option>
                 <option :value="20">20</option>
                 <option :value="50">50</option>
                 <option :value="100">100</option>
@@ -86,7 +87,7 @@ const error = ref<string | null>(null)
 const holdings = ref<PortfolioHolding[]>([])
 const currentPage = ref(1)
 const lastPage = ref(1)
-const perPage = ref(20)
+const perPage = ref(10)
 
 const formatQuantity = (quantity: number): string => {
   // Format quantity with appropriate decimal places

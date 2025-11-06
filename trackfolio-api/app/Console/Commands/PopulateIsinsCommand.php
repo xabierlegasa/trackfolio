@@ -16,7 +16,7 @@ class PopulateIsinsCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'isins:populate {--provider= : Provider to use (finnhub or fmp). Defaults to finnhub}';
+    protected $signature = 'isins:populate {--provider= : Provider to use (finnhub, fmp, or alphavantage). Defaults to finnhub}';
 
     /**
      * The console command description.
@@ -93,8 +93,8 @@ class PopulateIsinsCommand extends Command
         $provider = $this->option('provider') ?? StockApiService::PROVIDER_FINNHUB;
 
         // Validate provider
-        if (!in_array($provider, [StockApiService::PROVIDER_FINNHUB, StockApiService::PROVIDER_FMP])) {
-            $this->error("Invalid provider: {$provider}. Available: finnhub, fmp");
+        if (!in_array($provider, [StockApiService::PROVIDER_FINNHUB, StockApiService::PROVIDER_FMP, StockApiService::PROVIDER_ALPHAVANTAGE])) {
+            $this->error("Invalid provider: {$provider}. Available: finnhub, fmp, alphavantage");
             return Command::FAILURE;
         }
 

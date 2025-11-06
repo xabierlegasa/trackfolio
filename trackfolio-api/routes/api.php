@@ -5,6 +5,8 @@ use App\User\Controllers\UserController;
 use App\DegiroTransaction\Infrastructure\Controllers\UploadDegiroTransactionController;
 use App\DegiroTransaction\Infrastructure\Controllers\ListDegiroTransactionsController;
 use App\DegiroTransaction\Infrastructure\Controllers\PortfolioStatsController;
+use App\DegiroTransaction\Infrastructure\Controllers\TradesController;
+use App\DegiroTransaction\Infrastructure\Controllers\TradesSummaryController;
 use App\Dummy\Controllers\DummyController;
 use App\Isin\Infrastructure\Controllers\StockCandleController;
 use Illuminate\Http\Request;
@@ -36,5 +38,9 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Portfolio Statistics routes
     Route::get('/portfolio-stats', [PortfolioStatsController::class, 'index']);
+    
+    // Trades routes
+    Route::get('/trades', [TradesController::class, 'index']);
+    Route::get('/trades-summary', [TradesSummaryController::class, 'index']);
 });
 

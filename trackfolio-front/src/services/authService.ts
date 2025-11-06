@@ -89,6 +89,30 @@ export interface PortfolioStatsResponse {
   last_page: number
 }
 
+export interface Trade {
+  isin: string
+  product: string
+  profit_loss: number
+  currency: string
+  first_purchase_date: string
+  last_sale_date: string
+}
+
+export interface TradesResponse {
+  data: Trade[]
+  current_page: number
+  per_page: number
+  total: number
+  last_page: number
+}
+
+export interface TradesSummary {
+  positive_sum: number
+  negative_sum: number
+  difference: number
+  currency: string
+}
+
 export const authService = {
   async getCsrfCookie(): Promise<void> {
     await apiClient.get('/sanctum/csrf-cookie')
@@ -147,7 +171,7 @@ export const authService = {
     return response.data
   },
 
-  async getDegiroTransactions(perPage: number = 20, page: number = 1): Promise<DegiroTransactionsListResponse> {
+  async getDegiroTransactions(perPage: number = 10, page: number = 1): Promise<DegiroTransactionsListResponse> {
     const response = await apiClient.get<DegiroTransactionsListResponse>('/api/degiro-transactions', {
       params: {
         per_page: perPage,
@@ -157,13 +181,30 @@ export const authService = {
     return response.data
   },
 
-  async getPortfolioStats(perPage: number = 20, page: number = 1): Promise<PortfolioStatsResponse> {
+  async getPortfolioStats(perPage: number = 10, page: number = 1): Promise<PortfolioStatsResponse> {
     const response = await apiClient.get<PortfolioStatsResponse>('/api/portfolio-stats', {
       params: {
         per_page: perPage,
         page: page
       }
     })
+    return response.data
+  },
+
+  async getTrades(perPage: number = 10, page: number = 1, sortBy: string = 'last_sale_date', sortOrder: string = 'desc'): Promise<TradesResponse> {
+    const response = await apiClient.get<TradesResponse>('/api/trades', {
+      params: {
+        per_page: perPage,
+        page: page,
+        sort_by: sortBy,
+        sort_order: sortOrder
+      }
+    })
+    return response.data
+  },
+
+  async getTradesSummary(): Promise<TradesSummary> {
+    const response = await apiClient.get<TradesSummary>('/api/trades-summary')
     return response.data
   }
 }

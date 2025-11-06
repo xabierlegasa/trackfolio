@@ -41,9 +41,9 @@ class StockCandleController extends Controller
 
         // Get provider from request (optional, defaults to finnhub)
         $provider = $request->get('provider');
-        if ($provider !== null && !in_array($provider, [StockApiService::PROVIDER_FINNHUB, StockApiService::PROVIDER_FMP])) {
+        if ($provider !== null && !in_array($provider, [StockApiService::PROVIDER_FINNHUB, StockApiService::PROVIDER_FMP, StockApiService::PROVIDER_ALPHAVANTAGE])) {
             return response()->json([
-                'error' => 'Invalid provider. Available: ' . StockApiService::PROVIDER_FINNHUB . ', ' . StockApiService::PROVIDER_FMP
+                'error' => 'Invalid provider. Available: ' . StockApiService::PROVIDER_FINNHUB . ', ' . StockApiService::PROVIDER_FMP . ', ' . StockApiService::PROVIDER_ALPHAVANTAGE
             ], 400);
         }
 

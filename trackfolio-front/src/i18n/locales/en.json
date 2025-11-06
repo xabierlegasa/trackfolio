@@ -59,9 +59,9 @@
       "button": "Upload Degiro Transactions CSV"
     },
     "portfolioStats": {
-      "title": "Statistics",
+      "title": "Stats",
       "description": "View your current portfolio composition based on all your transactions.",
-      "button": "View Statistics"
+      "button": "View Stats"
     }
   },
   "login": {
@@ -142,8 +142,26 @@
       "close": "Close"
     }
   },
+  "statistics": {
+    "title": "Stats",
+    "portfolio": {
+      "title": "Portfolio",
+      "description": "View your current portfolio composition based on all your transactions.",
+      "button": "View Portfolio"
+    },
+    "trades": {
+      "title": "Trades",
+      "description": "View your closed trades with profit/loss information.",
+      "button": "View Trades"
+    },
+    "tradesSummary": {
+      "title": "Closed Trades Summary",
+      "description": "View summary of all your closed trades with total gains and losses.",
+      "button": "View Closed Trades Summary"
+    }
+  },
   "portfolioStats": {
-    "title": "Portfolio Statistics",
+    "title": "Portfolio Stats",
     "noHoldings": "No holdings found. Your portfolio is empty.",
     "table": {
       "product": "Product",
@@ -153,6 +171,26 @@
       "page": "Page {current} of {total}",
       "itemsPerPage": "Items per page"
     }
+  },
+  "trades": {
+    "title": "Trades",
+    "noTrades": "No closed trades found.",
+    "table": {
+      "product": "Product",
+      "profitLoss": "Profit/Loss",
+      "firstPurchaseDate": "First Purchase",
+      "lastSaleDate": "Last Sale"
+    },
+    "pagination": {
+      "page": "Page {current} of {total}",
+      "itemsPerPage": "Items per page"
+    }
+  },
+  "tradeSummary": {
+    "title": "Closed Trades Summary",
+    "positiveSum": "Positive",
+    "negativeSum": "Negative",
+    "difference": "Difference"
   }
 }
 

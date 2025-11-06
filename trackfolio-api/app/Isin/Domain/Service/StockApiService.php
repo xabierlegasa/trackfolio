@@ -6,6 +6,7 @@ use App\Isin\Domain\DTO\StockCandleDTO;
 use App\Isin\Domain\DTO\StockInfoDTO;
 use App\Isin\Domain\DTO\StockQuoteDTO;
 use App\Isin\Domain\DTO\StockSearchResponseDTO;
+use App\Isin\Domain\Service\Provider\AlphaVantageProvider;
 use App\Isin\Domain\Service\Provider\FinnhubProvider;
 use App\Isin\Domain\Service\Provider\FmpProvider;
 use App\Isin\Domain\Service\Provider\StockApiProviderInterface;
@@ -15,6 +16,7 @@ class StockApiService
 {
     public const PROVIDER_FINNHUB = 'finnhub';
     public const PROVIDER_FMP = 'fmp';
+    public const PROVIDER_ALPHAVANTAGE = 'alphavantage';
 
     /**
      * Create provider instance.
@@ -28,7 +30,8 @@ class StockApiService
         return match (strtolower($providerName)) {
             self::PROVIDER_FINNHUB => new FinnhubProvider(),
             self::PROVIDER_FMP => new FmpProvider(),
-            default => throw new \InvalidArgumentException("Unknown stock API provider: {$providerName}. Available: " . self::PROVIDER_FINNHUB . ", " . self::PROVIDER_FMP),
+            self::PROVIDER_ALPHAVANTAGE => new AlphaVantageProvider(),
+            default => throw new \InvalidArgumentException("Unknown stock API provider: {$providerName}. Available: " . self::PROVIDER_FINNHUB . ", " . self::PROVIDER_FMP . ", " . self::PROVIDER_ALPHAVANTAGE),
         };
     }
 
@@ -48,7 +51,7 @@ class StockApiService
      * Search for a stock by ISIN.
      *
      * @param string $isin
-     * @param string|null $provider Provider to use (PROVIDER_FINNHUB or PROVIDER_FMP). Defaults to PROVIDER_FINNHUB.
+     * @param string|null $provider Provider to use (PROVIDER_FINNHUB, PROVIDER_FMP, or PROVIDER_ALPHAVANTAGE). Defaults to PROVIDER_FINNHUB.
      * @return StockSearchResponseDTO|null
      * @throws \Exception
      */
@@ -61,7 +64,7 @@ class StockApiService
      * Get quote information for a symbol.
      *
      * @param string $symbol
-     * @param string|null $provider Provider to use (PROVIDER_FINNHUB or PROVIDER_FMP). Defaults to PROVIDER_FINNHUB.
+     * @param string|null $provider Provider to use (PROVIDER_FINNHUB, PROVIDER_FMP, or PROVIDER_ALPHAVANTAGE). Defaults to PROVIDER_FINNHUB.
      * @return StockQuoteDTO|null
      * @throws \Exception
      */
@@ -74,7 +77,7 @@ class StockApiService
      * Get stock information from external API by ISIN.
      *
      * @param string $isin
-     * @param string|null $provider Provider to use (PROVIDER_FINNHUB or PROVIDER_FMP). Defaults to PROVIDER_FINNHUB.
+     * @param string|null $provider Provider to use (PROVIDER_FINNHUB, PROVIDER_FMP, or PROVIDER_ALPHAVANTAGE). Defaults to PROVIDER_FINNHUB.
      * @return StockInfoDTO|null
      * @throws \Exception
      */
@@ -113,7 +116,7 @@ class StockApiService
      * @param int $fromTimestamp Unix timestamp for start time.
      * @param int $toTimestamp Unix timestamp for end time.
      * @param string $resolution Resolution: '1', '5', '15', '30', '60', 'D', 'W', 'M'.
-     * @param string|null $provider Provider to use (PROVIDER_FINNHUB or PROVIDER_FMP). Defaults to PROVIDER_FINNHUB.
+     * @param string|null $provider Provider to use (PROVIDER_FINNHUB, PROVIDER_FMP, or PROVIDER_ALPHAVANTAGE). Defaults to PROVIDER_FINNHUB.
      * @return StockCandleDTO|null DTO containing all candle data, or null on error.
      */
     public function getCandleData(string $symbol, int $fromTimestamp, int $toTimestamp, string $resolution = 'D', ?string $provider = null): ?StockCandleDTO
@@ -126,7 +129,7 @@ class StockApiService
      * 
      * @param string $symbol The stock symbol (ticker), e.g., 'AAPL'.
      * @param Carbon $date The desired date (will use closing price of that day).
-     * @param string|null $provider Provider to use (PROVIDER_FINNHUB or PROVIDER_FMP). Defaults to PROVIDER_FINNHUB.
+     * @param string|null $provider Provider to use (PROVIDER_FINNHUB, PROVIDER_FMP, or PROVIDER_ALPHAVANTAGE). Defaults to PROVIDER_FINNHUB.
      * @return StockCandleDTO|null DTO containing all candle data, or null on error.
      */
     public function getClosingPriceByDate(string $symbol, Carbon $date, ?string $provider = null): ?StockCandleDTO

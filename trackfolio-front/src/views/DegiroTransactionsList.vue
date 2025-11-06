@@ -89,6 +89,7 @@
                 <span class="label-text">{{ $t('degiroTransactionsList.pagination.itemsPerPage') }}:</span>
               </label>
               <select v-model="perPage" @change="handlePerPageChange" class="select select-bordered select-sm">
+                <option :value="10">10</option>
                 <option :value="20">20</option>
                 <option :value="50">50</option>
                 <option :value="100">100</option>
@@ -146,7 +147,7 @@ const error = ref<string | null>(null)
 const transactions = ref<DegiroTransaction[]>([])
 const currentPage = ref(1)
 const lastPage = ref(1)
-const perPage = ref(20)
+const perPage = ref(10)
 const tooltipModal = ref<HTMLDialogElement | null>(null)
 const tooltipTitle = ref('')
 const tooltipDescription = ref('')

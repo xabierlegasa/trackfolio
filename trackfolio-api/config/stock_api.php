@@ -29,5 +29,9 @@ return [
     'fmp' => [
         'api_key' => env('FMP_API_KEY'),
     ],
+
+    'alphavantage' => [
+        'api_key' => env('ALPHAVANTAGE_API_KEY'),
+    ],
 ];
 
