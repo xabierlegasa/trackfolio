@@ -3,8 +3,8 @@
 namespace App\DegiroTransaction\Application\UseCase;
 
 use App\DegiroTransaction\Domain\DTO\UploadDegiroTransactionsResult;
-use App\DegiroTransaction\Domain\Services\UploadDegiroTransactionsService;
-use App\DegiroTransaction\Domain\Services\ValidateDegiroTransactionsCsvService;
+use App\DegiroTransaction\Domain\Service\UploadDegiroTransactionsService;
+use App\DegiroTransaction\Domain\Service\ValidateDegiroTransactionsCsvService;
 use Illuminate\Http\UploadedFile;
 
 class UploadDegiroTransactionsUseCase

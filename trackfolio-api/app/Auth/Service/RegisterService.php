@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Auth\Services;
+namespace App\Auth\Service;
 
 use App\User\Domain\Entity\User;
 use App\User\Infrastructure\Repository\UserRepository;

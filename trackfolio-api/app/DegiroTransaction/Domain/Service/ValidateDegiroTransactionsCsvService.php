@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DegiroTransaction\Domain\Services;
+namespace App\DegiroTransaction\Domain\Service;
 
 use Illuminate\Http\UploadedFile;
 

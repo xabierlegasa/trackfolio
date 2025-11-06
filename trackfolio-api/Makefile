@@ -1,4 +1,4 @@
-.PHONY: help clear-cache cc restart restart-app docker-up docker-down migrate migrate-refresh
+.PHONY: help clear-cache cc restart restart-app docker-up docker-down migrate migrate-refresh populate-isins
 
 # Default target
 help:
@@ -11,6 +11,7 @@ help:
 	@echo "  make docker-down  - Stop Docker containers"
 	@echo "  make migrate      - Run database migrations"
 	@echo "  make migrate-refresh - Rollback last migration and migrate again"
+	@echo "  make populate-isins [PROVIDER=finnhub|fmp] - Populate isins table from degiro_transactions"
 
 # Clear Laravel caches and restart container
 clear-cache cc:
@@ -50,4 +51,14 @@ migrate-refresh:
 	@echo "Running migrations..."
 	cd infra && docker-compose exec app php artisan migrate
 	@echo "Done!"
+
+# Populate isins table from degiro_transactions
+populate-isins:
+	@if [ -z "$(PROVIDER)" ]; then \
+		echo "Populating ISINs using default provider (finnhub)..."; \
+		cd infra && docker-compose exec app php artisan isins:populate; \
+	else \
+		echo "Populating ISINs using provider: $(PROVIDER)..."; \
+		cd infra && docker-compose exec app php artisan isins:populate --provider=$(PROVIDER); \
+	fi
 

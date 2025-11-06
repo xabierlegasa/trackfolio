@@ -12,12 +12,12 @@ app/DegiroTransaction/
 │   │   └── DegiroTransactionDTO.php
 │   ├── Entity/
 │   │   └── DegiroTransaction.php
-│   └── Services/
+│   └── Service/
 │       ├── ConverterCurrencyToMinUnitService.php
 │       ├── ParseDegiroTransactionRowService.php
 │       └── UploadDegiroTransactionsService.php
 └── Infrastructure/
-    ├── Controllers/
+    ├── Controller/
     │   └── UploadDegiroTransactionController.php
     └── Repository/
         └── DegiroTransactionRepository.php
@@ -83,6 +83,34 @@ Example:
 urls should follow the following pattern:
 - /api/count-degiro-transactions (instead of /apidegiro-transactions/count)
 
+---------------------------------
+
+When you create a migration, instead of using $table->timestamps();, use the following:
+$table->timestamp('created_at')->useCurrent();
+$table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+
+---------------------------------
+
+When you create a migration, use snake_case for the column names.
+Example:
+Instead of:
+$table->string('product');
+Do this:
+$table->string('product_name');
+
+---------------------------------
+
+When you create an entity, create the getters and setters for the properties. Getter should not have "get" prefix but setter should have "set" prefix.
+Example:
+public function productName(): string
+{
+    return $this->product_name;
+}
+
+public function setProductName(string $productName): void
+{
+    $this->product_name = $productName;
+}
 ---------------------------------
 
 

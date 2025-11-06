@@ -1,0 +1,268 @@
+[
+    {
+       "isin":"US8740391003",
+       "symbol":"TSM",
+       "description":"Taiwan Semiconductor Manufacturing Co. Ltd. (TSMC)",
+       "type":"Common Stock",
+       "display_symbol":"TSM"
+    },
+    {
+       "isin":"XFC000A2YY6Q",
+       "symbol":"BTC",
+       "description":"Bitcoin (Internal Ticker for specific trading platforms)",
+       "type":"Cryptocurrency (Major)",
+       "display_symbol":"BTC"
+    },
+    {
+       "isin":"IE00B4ND3602",
+       "symbol":"SXR8",
+       "description":"iShares Core S&P 500 UCITS ETF (Acc)",
+       "type":"ETF (Exchange Traded Fund)",
+       "display_symbol":"SXR8"
+    },
+    {
+       "isin":"IE00B5BMR087",
+       "symbol":"EUNL",
+       "description":"iShares Core MSCI World UCITS ETF",
+       "type":"ETF (Exchange Traded Fund)",
+       "display_symbol":"EUNL"
+    },
+    {
+       "isin":"IE00BMC38736",
+       "symbol":"ISPY",
+       "description":"iShares Digital Security UCITS ETF",
+       "type":"ETF (Exchange Traded Fund)",
+       "display_symbol":"ISPY"
+    },
+    {
+       "isin":"NL0015000M91",
+       "symbol":"ELEC",
+       "description":"Amundi MSCI Global Climate Change FTRS EV UCITS ETF",
+       "type":"ETF (Exchange Traded Fund)",
+       "display_symbol":"ELEC"
+    },
+    {
+       "isin":"US02079K1079",
+       "symbol":"GOOG",
+       "description":"Alphabet Inc. (Class C) Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"GOOG"
+    },
+    {
+       "isin":"KYG6055H1149",
+       "symbol":"NIO",
+       "description":"NIO Inc. (Class A) American Depositary Shares (ADS)",
+       "type":"Common Stock (ADS)",
+       "display_symbol":"NIO"
+    },
+    {
+       "isin":"US53225G1022",
+       "symbol":"LOW",
+       "description":"Lowe's Companies, Inc. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"LOW"
+    },
+    {
+       "isin":"US53225G1022",
+       "symbol":"LOW",
+       "description":"Lowe's Companies, Inc. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"LOW"
+    },
+    {
+       "isin":"CA10778Y3023",
+       "symbol":"DOO",
+       "description":"BRP Inc. Subordinate Voting Shares",
+       "type":"Common Stock",
+       "display_symbol":"DOO"
+    },
+    {
+       "isin":"US03783T1034",
+       "symbol":"AAPL",
+       "description":"Apple Inc. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"AAPL"
+    },
+    {
+       "isin":"US8870801094",
+       "symbol":"TGT",
+       "description":"Target Corporation Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"TGT"
+    },
+    {
+       "isin":"US2362721001",
+       "symbol":"DE",
+       "description":"Deere & Company Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"DE"
+    },
+    {
+       "isin":"US6081891060",
+       "symbol":"MSFT",
+       "description":"Microsoft Corporation Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"MSFT"
+    },
+    {
+       "isin":"US36118H1059",
+       "symbol":"GILD",
+       "description":"Gilead Sciences, Inc. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"GILD"
+    },
+    {
+       "isin":"CA10778Y3023",
+       "symbol":"DOO",
+       "description":"BRP Inc. Subordinate Voting Shares",
+       "type":"Common Stock",
+       "display_symbol":"DOO"
+    },
+    {
+       "isin":"US00848K1016",
+       "symbol":"ADBE",
+       "description":"Adobe Inc. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"ADBE"
+    },
+    {
+       "isin":"US12572Q1058",
+       "symbol":"CRM",
+       "description":"Salesforce, Inc. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"CRM"
+    },
+    {
+       "isin":"US47215P1066",
+       "symbol":"KR",
+       "description":"The Kroger Co. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"KR"
+    },
+    {
+       "isin":"US5391831030",
+       "symbol":"LLY",
+       "description":"Eli Lilly and Company Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"LLY"
+    },
+    {
+       "isin":"US8742242071",
+       "symbol":"TMO",
+       "description":"Thermo Fisher Scientific Inc. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"TMO"
+    },
+    {
+       "isin":"US0404131064",
+       "symbol":"AZO",
+       "description":"AutoZone, Inc. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"AZO"
+    },
+    {
+       "isin":"US63947U1079",
+       "symbol":"NFLX",
+       "description":"Netflix, Inc. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"NFLX"
+    },
+    {
+       "isin":"ES0125140A14",
+       "symbol":"CABK",
+       "description":"CaixaBank, S.A. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"CABK"
+    },
+    {
+       "isin":"US02156B1035",
+       "symbol":"AMGN",
+       "description":"Amgen Inc. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"AMGN"
+    },
+    {
+       "isin":"US3443281098",
+       "symbol":"F",
+       "description":"Ford Motor Company Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"F"
+    },
+    {
+       "isin":"US00507V1098",
+       "symbol":"ADSK",
+       "description":"Autodesk, Inc. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"ADSK"
+    },
+    {
+       "isin":"US57665R1068",
+       "symbol":"MA",
+       "description":"Mastercard Incorporated Class A Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"MA"
+    },
+    {
+       "isin":"ES0105630315",
+       "symbol":"SAN",
+       "description":"Banco Santander, S.A. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"SAN"
+    },
+    {
+       "isin":"ES0105456026",
+       "symbol":"BBVA",
+       "description":"Banco Bilbao Vizcaya Argentaria, S.A. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"BBVA"
+    },
+    {
+       "isin":"US92918V1098",
+       "symbol":"VRTX",
+       "description":"Vertex Pharmaceuticals Incorporated Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"VRTX"
+    },
+    {
+       "isin":"KYG9835C1087",
+       "symbol":"ZIM",
+       "description":"ZIM Integrated Shipping Services Ltd. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"ZIM"
+    },
+    {
+       "isin":"ES0172708234",
+       "symbol":"IDR",
+       "description":"Indra Sistemas, S.A. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"IDR"
+    },
+    {
+       "isin":"US72582H1077",
+       "symbol":"PFE",
+       "description":"Pfizer Inc. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"PFE"
+    },
+    {
+       "isin":"US57636Q1040",
+       "symbol":"MAS",
+       "description":"Masco Corporation Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"MAS"
+    },
+    {
+       "isin":"GB00BLP5YB54",
+       "symbol":"SHEL",
+       "description":"Shell plc American Depositary Shares (ADS)",
+       "type":"Common Stock (ADS)",
+       "display_symbol":"SHEL"
+    },
+    {
+       "isin":"US725ESC0166",
+       "symbol":"PMI",
+       "description":"Philip Morris International Inc. Common Stock",
+       "type":"Common Stock",
+       "display_symbol":"PMI"
+    }
+ ]

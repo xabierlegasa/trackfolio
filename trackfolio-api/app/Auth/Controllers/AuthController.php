@@ -2,10 +2,10 @@
 
 namespace App\Auth\Controllers;
 
-use App\Auth\Requests\LoginRequest;
-use App\Auth\Requests\RegisterRequest;
-use App\Auth\Services\LoginService;
-use App\Auth\Services\RegisterService;
+use App\Auth\Request\LoginRequest;
+use App\Auth\Request\RegisterRequest;
+use App\Auth\Service\LoginService;
+use App\Auth\Service\RegisterService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

@@ -42,6 +42,8 @@ docker-compose restart app
 - `make restart` - Restart Docker containers
 - `make migrate` - Run database migrations
 - `make help` - Show all available commands
+- `make populate-isins PROVIDER=finnhub`
+- `make populate-isins PROVIDER=fmp`
 
 
 

@@ -5,12 +5,16 @@ use App\User\Controllers\UserController;
 use App\DegiroTransaction\Infrastructure\Controllers\UploadDegiroTransactionController;
 use App\DegiroTransaction\Infrastructure\Controllers\ListDegiroTransactionsController;
 use App\DegiroTransaction\Infrastructure\Controllers\PortfolioStatsController;
+use App\Dummy\Controllers\DummyController;
+use App\Isin\Infrastructure\Controllers\StockCandleController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // Public routes (no authentication required)
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/dummy', [DummyController::class, 'index']);
+Route::get('/stock-candle', [StockCandleController::class, 'index']);
 
 // Authenticated routes
 Route::middleware('auth:sanctum')->group(function () {
