@@ -26,10 +26,16 @@ class TradesController
         $sortBy = $request->get('sort_by', 'last_sale_date');
         $sortOrder = $request->get('sort_order', 'desc');
 
+        $product = trim((string) $request->get('product', ''));
+        if (strlen($product) > 200) {
+            $product = substr($product, 0, 200);
+        }
+        $productLike = $product !== '' ? $product : null;
+
         // Ensure per_page is within reasonable bounds
         $perPage = max(1, min($perPage, 100));
 
-        $trades = $this->repository->getClosedTrades($user->id, $perPage, $sortBy, $sortOrder);
+        $trades = $this->repository->getClosedTrades($user->id, $perPage, $sortBy, $sortOrder, $productLike);
 
         return response()->json([
             'data' => $trades->items(),

@@ -10,6 +10,7 @@ import Statistics from '../views/Statistics.vue'
 import PortfolioStats from '../views/PortfolioStats.vue'
 import Trades from '../views/Trades.vue'
 import TradeSummary from '../views/TradeSummary.vue'
+import Configuration from '../views/Configuration.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -33,6 +34,11 @@ const router = createRouter({
       path: '/dashboard',
       name: 'dashboard',
       component: Dashboard
+    },
+    {
+      path: '/configuration',
+      name: 'configuration',
+      component: Configuration
     },
     {
       path: '/account',

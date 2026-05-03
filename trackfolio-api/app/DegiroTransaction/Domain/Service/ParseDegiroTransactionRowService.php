@@ -13,10 +13,8 @@ class ParseDegiroTransactionRowService
     /**
      * Parse a single CSV row into transaction data.
      *
-     * CSV structure (19 columns):
-     * Date, Time, Product, ISIN, Reference, Venue, Quantity, Price, Currency1, 
-     * Local value, Currency2, Value, Currency3, Exchange rate, Transaction and/or third, 
-     * Currency4, Total, Currency5, Order ID
+     * Legacy (19 columns): separate Value / Total currency columns.
+     * Current DEGIRO EU export (17–18 columns): Value EUR, AutoFX Fee, fees and total in EUR; optional blank before Order ID.
      *
      * @param array $row The CSV row data
      * @param int $userId The user ID to associate with the transaction
@@ -24,7 +22,8 @@ class ParseDegiroTransactionRowService
      */
     public function parse(array $row, int $userId): ?DegiroTransactionDTO
     {
-        if (count($row) < 8) { // Minimum required columns
+        $columnCount = count($row);
+        if ($columnCount !== 19 && $columnCount !== 17 && $columnCount !== 18) {
             return null;
         }
 
@@ -55,29 +54,48 @@ class ParseDegiroTransactionRowService
         $localValueMinUnit = $this->currencyConverter->convertToCents($row[9] ?? null);
         $localValueCurrency = $cleanValue($row[10] ?? null);
         $valueMinUnit = $this->currencyConverter->convertToCents($row[11] ?? null);
-        $valueCurrency = $cleanValue($row[12] ?? null);
-        $exchangeRate = $cleanValue($row[13] ?? null);
-        $transactionAndOrThird = $cleanValue($row[14] ?? null);
-        $transactionCurrency = $cleanValue($row[15] ?? null);
-        $totalMinUnit = $this->currencyConverter->convertToCents($row[16] ?? null);
-        $totalCurrency = $cleanValue($row[17] ?? null);
-        $orderId = $cleanValue($row[18] ?? null);
+
+        $autoFxForHash = '';
+
+        if ($columnCount === 19) {
+            $valueCurrency = $cleanValue($row[12] ?? null);
+            $exchangeRate = $cleanValue($row[13] ?? null);
+            $transactionAndOrThird = $cleanValue($row[14] ?? null);
+            $transactionCurrency = $cleanValue($row[15] ?? null);
+            $totalMinUnit = $this->currencyConverter->convertToCents($row[16] ?? null);
+            $totalCurrency = $cleanValue($row[17] ?? null);
+            $orderId = $cleanValue($row[18] ?? null);
+        } else {
+            // 17 or 18 columns: EUR product totals in export; local/price currencies still per column
+            $valueCurrency = 'EUR';
+            $exchangeRate = $cleanValue($row[12] ?? null);
+            $autoFxForHash = $cleanValue($row[13] ?? null) ?? '';
+            $transactionAndOrThird = $cleanValue($row[14] ?? null);
+            $transactionCurrency = ($transactionAndOrThird !== null && $transactionAndOrThird !== '') ? 'EUR' : null;
+            $totalMinUnit = $this->currencyConverter->convertToCents($row[15] ?? null);
+            $totalCurrency = 'EUR';
+            if ($columnCount === 18) {
+                $cell16 = $cleanValue($row[16] ?? null);
+                $cell17 = $cleanValue($row[17] ?? null);
+                $orderId = ($cell17 !== null && $cell17 !== '') ? $cell17 : $cell16;
+            } else {
+                $orderId = $cleanValue($row[16] ?? null);
+            }
+        }
 
         // Validate required fields are not null
         // Note: exchangeRate, transactionAndOrThird, transactionCurrency, and orderId are optional (nullable)
-        if ($date === null || $time === null || $product === null || $isin === null || 
-            $reference === null || $quantity === null || $priceTenThousandths === null || 
-            $priceCurrency === null || $localValueMinUnit === null || 
-            $localValueCurrency === null || $valueMinUnit === null || 
-            $valueCurrency === null || 
+        if ($date === null || $time === null || $product === null || $isin === null ||
+            $reference === null || $quantity === null || $priceTenThousandths === null ||
+            $priceCurrency === null || $localValueMinUnit === null ||
+            $localValueCurrency === null || $valueMinUnit === null ||
+            $valueCurrency === null ||
             $totalMinUnit === null || $totalCurrency === null) {
             return null;
         }
 
-        // Calculate content hash from all column values
-        // Concatenate all values in a consistent order for hashing
-        // Note: Format quantity as string with fixed precision for consistent hashing
-        $contentForHash = implode('|', [
+        // Calculate content hash from all column values (legacy hash unchanged for 19-column rows)
+        $hashParts = [
             $userId,
             $date,
             $time,
@@ -85,7 +103,7 @@ class ParseDegiroTransactionRowService
             $isin,
             $reference,
             $venue ?? '',
-            number_format($quantity, 10, '.', ''), // Format with 10 decimal places, dot separator
+            number_format($quantity, 10, '.', ''),
             $priceTenThousandths,
             $priceCurrency,
             $localValueMinUnit,
@@ -93,12 +111,16 @@ class ParseDegiroTransactionRowService
             $valueMinUnit,
             $valueCurrency,
             $exchangeRate ?? '',
-            $transactionAndOrThird ?? '',
-            $transactionCurrency ?? '',
-            $totalMinUnit,
-            $totalCurrency,
-            $orderId ?? '',
-        ]);
+        ];
+        if ($columnCount !== 19) {
+            $hashParts[] = $autoFxForHash;
+        }
+        $hashParts[] = $transactionAndOrThird ?? '';
+        $hashParts[] = $transactionCurrency ?? '';
+        $hashParts[] = $totalMinUnit;
+        $hashParts[] = $totalCurrency;
+        $hashParts[] = $orderId ?? '';
+        $contentForHash = implode('|', $hashParts);
         
         $customContentHash = hash('sha256', $contentForHash);
 

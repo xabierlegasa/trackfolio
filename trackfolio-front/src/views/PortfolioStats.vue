@@ -29,7 +29,16 @@
               </thead>
               <tbody>
                 <tr v-for="holding in holdings" :key="holding.isin">
-                  <td class="whitespace-nowrap">{{ holding.product }}</td>
+                  <td class="whitespace-nowrap">
+                    <RouterLink
+                      v-if="holding.product.trim()"
+                      :to="transactionsLinkForProduct(holding.product)"
+                      class="link link-primary font-medium"
+                    >
+                      {{ holding.product }}
+                    </RouterLink>
+                    <span v-else>{{ holding.product }}</span>
+                  </td>
                   <td class="whitespace-nowrap text-right">{{ formatQuantity(holding.quantity) }}</td>
                 </tr>
               </tbody>
@@ -77,10 +86,19 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { RouterLink } from 'vue-router'
 import { authService, PortfolioHolding } from '../services/authService'
 
-const { t } = useI18n()
+/** Same cap as API `product` filter (200 chars). */
+const MAX_PRODUCT_QUERY_LEN = 200
+
+const transactionsLinkForProduct = (product: string) => {
+  const q = product.trim().slice(0, MAX_PRODUCT_QUERY_LEN)
+  return {
+    name: 'degiro-transactions-list' as const,
+    query: q ? { product: q } : {}
+  }
+}
 
 const isLoading = ref(true)
 const error = ref<string | null>(null)

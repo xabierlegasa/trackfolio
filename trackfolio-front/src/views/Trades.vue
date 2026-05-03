@@ -10,14 +10,46 @@
       <span>{{ error }}</span>
     </div>
 
-    <div v-else-if="trades.length === 0" class="card bg-base-100 shadow-xl">
-      <div class="card-body">
-        <p class="text-base-content/70">{{ $t('trades.noTrades') }}</p>
-      </div>
-    </div>
-
     <div v-else class="space-y-6">
       <div class="card bg-base-100 shadow-xl">
+        <div class="card-body flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
+          <div class="form-control flex-1 min-w-[200px]">
+            <label class="label py-0">
+              <span class="label-text font-semibold">{{ $t('trades.filter.productLabel') }}</span>
+            </label>
+            <input
+              v-model="productFilterDraft"
+              type="search"
+              class="input input-bordered input-sm w-full"
+              :placeholder="$t('trades.filter.placeholder')"
+              @keydown.enter.prevent="applyProductFilter"
+            />
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="btn btn-primary btn-sm" @click="applyProductFilter">
+              {{ $t('trades.filter.apply') }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm"
+              :disabled="!productFilterDraft.trim() && !appliedProductFilter"
+              @click="clearProductFilter"
+            >
+              {{ $t('trades.filter.clear') }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="trades.length === 0" class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <p class="text-base-content/70">
+            {{ appliedProductFilter ? $t('trades.noMatches') : $t('trades.noTrades') }}
+          </p>
+        </div>
+      </div>
+
+      <div v-else class="card bg-base-100 shadow-xl">
         <div class="card-body">
           <div class="overflow-x-auto">
             <table class="table table-zebra min-w-full">
@@ -93,10 +125,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { authService, Trade } from '../services/authService'
-
-const { t } = useI18n()
 
 const isLoading = ref<boolean>(true)
 const error = ref<string | null>(null)
@@ -106,6 +135,8 @@ const lastPage = ref(1)
 const perPage = ref(10)
 const sortBy = ref('last_sale_date')
 const sortOrder = ref<'asc' | 'desc'>('desc')
+const productFilterDraft = ref('')
+const appliedProductFilter = ref('')
 
 const formatCurrency = (valueMinUnit: number, currency: string): string => {
   const value = valueMinUnit / 100
@@ -136,7 +167,13 @@ const loadPage = async (page: number) => {
   error.value = null
   
   try {
-    const response = await authService.getTrades(perPage.value, page, sortBy.value, sortOrder.value)
+    const response = await authService.getTrades(
+      perPage.value,
+      page,
+      sortBy.value,
+      sortOrder.value,
+      appliedProductFilter.value || undefined
+    )
     trades.value = response.data
     currentPage.value = response.current_page
     lastPage.value = response.last_page
@@ -163,6 +200,17 @@ const toggleSort = (column: string) => {
 
 const handlePerPageChange = () => {
   // Reset to first page when changing items per page
+  loadPage(1)
+}
+
+const applyProductFilter = () => {
+  appliedProductFilter.value = productFilterDraft.value.trim()
+  loadPage(1)
+}
+
+const clearProductFilter = () => {
+  productFilterDraft.value = ''
+  appliedProductFilter.value = ''
   loadPage(1)
 }
 

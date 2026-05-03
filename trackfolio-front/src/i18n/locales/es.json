@@ -62,6 +62,26 @@
       "title": "Stats",
       "description": "Visualiza la composición actual de tu cartera basada en todas tus transacciones.",
       "button": "Ver Stats"
+    },
+    "configuration": {
+      "title": "Configuración",
+      "description": "Ajustes de la cuenta y acciones destructivas, como borrar los datos importados.",
+      "button": "Abrir configuración"
+    }
+  },
+  "configuration": {
+    "title": "Configuración",
+    "backToDashboard": "Volver al panel",
+    "dangerZone": {
+      "title": "Zona de peligro",
+      "description": "Elimina de forma permanente todas las transacciones de Degiro que hayas importado. No se puede deshacer.",
+      "deleteAllButton": "Eliminar todas las transacciones"
+    },
+    "modal": {
+      "title": "¿Seguro?",
+      "body": "Se borrarán todas las transacciones de Degiro asociadas a tu cuenta. Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Sí, eliminar todo"
     }
   },
   "login": {
@@ -89,7 +109,12 @@
   },
   "uploadDegiroTransactions": {
     "title": "Subir transacciones de Degiro",
-    "description": "Selecciona y sube tu archivo CSV de transacciones de Degiro. El archivo será procesado y tus transacciones serán importadas.",
+    "recent": {
+      "title": "5 transacciones más recientes",
+      "empty": "Aún no hay transacciones guardadas. Tras subir un CSV, aquí verás las últimas filas.",
+      "loadFailed": "No se pudieron cargar las transacciones recientes."
+    },
+    "description": "Selecciona y sube tu archivo CSV de transacciones de Degiro. El archivo será procesado y tus transacciones serán importadas. Puedes exportar las transacciones desde el panel de Degiro: Inbox >> Transacciones >> clic en «Export».",
     "selectFile": "Seleccionar archivo CSV",
     "fileSelected": "Archivo seleccionado",
     "upload": "Subir",
@@ -111,14 +136,23 @@
   "degiroTransactionsList": {
     "title": "Lista de Transacciones de Degiro",
     "noTransactions": "No se encontraron transacciones.",
+    "noMatches": "Ninguna transacción coincide con el filtro de producto.",
+    "filter": {
+      "productLabel": "Producto contiene",
+      "placeholder": "ej. AMAZON o parte del nombre",
+      "apply": "Aplicar",
+      "clear": "Limpiar"
+    },
     "table": {
       "date": "Fecha",
+      "time": "Hora",
       "product": "Producto",
       "quantity": "Cantidad",
       "price": "Precio",
       "localValue": "Valor Local",
       "value": "Valor",
-      "orderId": "Order ID"
+      "orderId": "Order ID",
+      "dbId": "ID BD"
     },
     "tooltips": {
       "price": {
@@ -161,7 +195,7 @@
     }
   },
   "portfolioStats": {
-    "title": "Stats de Cartera",
+    "title": "Portfolio",
     "noHoldings": "No se encontraron posiciones. Tu cartera está vacía.",
     "table": {
       "product": "Producto",
@@ -175,6 +209,13 @@
   "trades": {
     "title": "Trades",
     "noTrades": "No se encontraron trades cerrados.",
+    "noMatches": "Ningún trade cerrado coincide con el filtro de producto.",
+    "filter": {
+      "productLabel": "Producto contiene",
+      "placeholder": "ej. AMAZON o parte del nombre",
+      "apply": "Aplicar",
+      "clear": "Limpiar"
+    },
     "table": {
       "product": "Producto",
       "profitLoss": "Ganancia/Pérdida",

@@ -38,6 +38,11 @@ export interface DegiroTransactionsCountResponse {
   count: number
 }
 
+export interface DeleteAllDegiroTransactionsResponse {
+  message: string
+  deleted_count: number
+}
+
 export interface UploadDegiroTransactionsResponse {
   message: string
   count: number
@@ -154,6 +159,12 @@ export const authService = {
     return response.data
   },
 
+  async deleteAllDegiroTransactions(): Promise<DeleteAllDegiroTransactionsResponse> {
+    await this.getCsrfCookie()
+    const response = await apiClient.delete<DeleteAllDegiroTransactionsResponse>('/api/degiro-transactions')
+    return response.data
+  },
+
   async uploadDegiroTransactions(file: File): Promise<UploadDegiroTransactionsResponse> {
     // Ensure CSRF cookie is available
     await this.getCsrfCookie()
@@ -171,13 +182,22 @@ export const authService = {
     return response.data
   },
 
-  async getDegiroTransactions(perPage: number = 10, page: number = 1): Promise<DegiroTransactionsListResponse> {
-    const response = await apiClient.get<DegiroTransactionsListResponse>('/api/degiro-transactions', {
-      params: {
-        per_page: perPage,
-        page: page
-      }
-    })
+  async getDegiroTransactions(
+    perPage: number = 10,
+    page: number = 1,
+    sortOrder: 'asc' | 'desc' = 'desc',
+    product?: string
+  ): Promise<DegiroTransactionsListResponse> {
+    const params: Record<string, string | number> = {
+      per_page: perPage,
+      page: page,
+      sort_order: sortOrder
+    }
+    const trimmed = product?.trim()
+    if (trimmed) {
+      params.product = trimmed
+    }
+    const response = await apiClient.get<DegiroTransactionsListResponse>('/api/degiro-transactions', { params })
     return response.data
   },
 
@@ -191,15 +211,24 @@ export const authService = {
     return response.data
   },
 
-  async getTrades(perPage: number = 10, page: number = 1, sortBy: string = 'last_sale_date', sortOrder: string = 'desc'): Promise<TradesResponse> {
-    const response = await apiClient.get<TradesResponse>('/api/trades', {
-      params: {
-        per_page: perPage,
-        page: page,
-        sort_by: sortBy,
-        sort_order: sortOrder
-      }
-    })
+  async getTrades(
+    perPage: number = 10,
+    page: number = 1,
+    sortBy: string = 'last_sale_date',
+    sortOrder: string = 'desc',
+    product?: string
+  ): Promise<TradesResponse> {
+    const params: Record<string, string | number> = {
+      per_page: perPage,
+      page: page,
+      sort_by: sortBy,
+      sort_order: sortOrder
+    }
+    const trimmed = product?.trim()
+    if (trimmed) {
+      params.product = trimmed
+    }
+    const response = await apiClient.get<TradesResponse>('/api/trades', { params })
     return response.data
   },
 

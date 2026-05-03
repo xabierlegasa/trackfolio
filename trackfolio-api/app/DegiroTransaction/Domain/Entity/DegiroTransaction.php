@@ -34,6 +34,7 @@ class DegiroTransaction extends Model
         'value_min_unit',
         'value_currency',
         'exchange_rate',
+        'autofx_fee',
         'transaction_and_or_third',
         'transaction_currency',
         'total_min_unit',

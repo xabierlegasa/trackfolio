@@ -61,16 +61,41 @@ class DegiroTransactionRepository
     }
 
     /**
-     * Get paginated transactions for a user, ordered by ID (most recent first).
+     * Delete all Degiro transactions for a user.
+     *
+     * @return int Number of rows deleted
+     */
+    public function deleteAllForUser(int $userId): int
+    {
+        return DegiroTransaction::where('user_id', $userId)->delete();
+    }
+
+    /**
+     * Get paginated transactions for a user, ordered by `date` (stored as DD-MM-YYYY; parsed for real chronology).
      *
      * @param int $userId
      * @param int $perPage
+     * @param string $sortOrder "desc" = newest date first, "asc" = oldest date first
+     * @param string|null $productLike when non-empty, filter with SQL LIKE %...% (wildcards in $productLike are escaped)
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function findPaginatedByUserId(int $userId, int $perPage = 10)
+    public function findPaginatedByUserId(int $userId, int $perPage = 10, string $sortOrder = 'desc', ?string $productLike = null)
     {
-        return DegiroTransaction::where('user_id', $userId)
-            ->orderBy('id', 'desc')
+        $direction = strtolower($sortOrder) === 'asc' ? 'ASC' : 'DESC';
+        $idDirection = strtolower($sortOrder) === 'asc' ? 'asc' : 'desc';
+
+        $query = DegiroTransaction::where('user_id', $userId);
+
+        if ($productLike !== null && $productLike !== '') {
+            $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $productLike);
+            $query->where('product', 'LIKE', '%'.$escaped.'%');
+        }
+
+        return $query
+            ->orderByRaw(
+                "STR_TO_DATE(`degiro_transactions`.`date`, '%d-%m-%Y') {$direction}"
+            )
+            ->orderBy('degiro_transactions.id', $idDirection)
             ->paginate($perPage);
     }
 
@@ -145,9 +170,10 @@ class DegiroTransactionRepository
      * @param int $perPage
      * @param string $sortBy
      * @param string $sortOrder
+     * @param string|null $productLike when non-empty, only ISINs with at least one matching transaction (LIKE %...%)
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function getClosedTrades(int $userId, int $perPage = 10, string $sortBy = 'last_sale_date', string $sortOrder = 'desc')
+    public function getClosedTrades(int $userId, int $perPage = 10, string $sortBy = 'last_sale_date', string $sortOrder = 'desc', ?string $productLike = null)
     {
         // Validate sort order
         $sortOrder = strtolower($sortOrder) === 'asc' ? 'ASC' : 'DESC';
@@ -162,6 +188,15 @@ class DegiroTransactionRepository
         
         // Get aggregated trades grouped by ISIN where total quantity = 0 (completely closed)
         $trades = DegiroTransaction::where('user_id', $userId)
+            ->when($productLike !== null && $productLike !== '', function ($query) use ($userId, $productLike) {
+                $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $productLike);
+                $query->whereIn('isin', function ($sub) use ($userId, $escaped) {
+                    $sub->select('isin')
+                        ->from('degiro_transactions')
+                        ->where('user_id', $userId)
+                        ->where('product', 'LIKE', '%'.$escaped.'%');
+                });
+            })
             ->selectRaw('
                 isin,
                 SUM(quantity) as total_quantity,

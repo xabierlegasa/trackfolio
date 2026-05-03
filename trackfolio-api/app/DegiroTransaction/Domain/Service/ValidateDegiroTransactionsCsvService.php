@@ -7,18 +7,12 @@ use Illuminate\Http\UploadedFile;
 class ValidateDegiroTransactionsCsvService
 {
     /**
-     * Expected number of columns in the CSV file.
+     * Legacy DEGIRO CSV: separate currency columns (19 columns).
+     * Current DEGIRO EU export: amounts in EUR in column titles, extra "AutoFX Fee", 17–18 columns.
      */
-    private const EXPECTED_COLUMN_COUNT = 19;
+    private const LEGACY_COLUMN_COUNT = 19;
 
-    /**
-     * Expected CSV header structure.
-     */
-    private const EXPECTED_HEADER = [
-        'Date', 'Time', 'Product', 'ISIN', 'Reference', 'Venue', 'Quantity', 'Price', '', 
-        'Local value', '', 'Value', '', 'Exchange rate', 'Transaction and/or third', 
-        '', 'Total', '', 'Order ID'
-    ];
+    private const COMPACT_COLUMN_COUNTS = [17, 18];
 
     /**
      * Valid currency codes (ISO 4217).
@@ -92,8 +86,8 @@ class ValidateDegiroTransactionsCsvService
         $errors = [];
 
         $columnCount = count($header);
-        if ($columnCount !== self::EXPECTED_COLUMN_COUNT) {
-            $errors[] = "Header row has {$columnCount} columns, expected " . self::EXPECTED_COLUMN_COUNT . " columns";
+        if ($columnCount !== self::LEGACY_COLUMN_COUNT && ! in_array($columnCount, self::COMPACT_COLUMN_COUNTS, true)) {
+            $errors[] = "Header row has {$columnCount} columns; expected " . self::LEGACY_COLUMN_COUNT . " (classic export) or 17–18 (current DEGIRO EU CSV with EUR columns and AutoFX Fee).";
         }
 
         return $errors;
@@ -110,12 +104,9 @@ class ValidateDegiroTransactionsCsvService
     {
         $errors = [];
 
-        // Check column count
         $columnCount = count($row);
-        if ($columnCount !== self::EXPECTED_COLUMN_COUNT) {
-            $errors[] = "Line {$lineNumber}: Expected " . self::EXPECTED_COLUMN_COUNT . " columns, found {$columnCount}";
-            // If column count is wrong, skip further validation for this row
-            return $errors;
+        if ($columnCount !== self::LEGACY_COLUMN_COUNT && ! in_array($columnCount, self::COMPACT_COLUMN_COUNTS, true)) {
+            return ["Line {$lineNumber}: Expected " . self::LEGACY_COLUMN_COUNT . " or 17–18 columns, found {$columnCount}"];
         }
 
         // Clean values (remove quotes and trim)
@@ -125,6 +116,28 @@ class ValidateDegiroTransactionsCsvService
             }
             return trim(trim($value, '"'));
         };
+
+        $errors = array_merge($errors, $this->validateRowCore($row, $lineNumber, $cleanValue));
+        if (! empty($errors)) {
+            return $errors;
+        }
+
+        if ($columnCount === self::LEGACY_COLUMN_COUNT) {
+            return array_merge($errors, $this->validateRowLegacyTail($row, $lineNumber, $cleanValue));
+        }
+
+        return array_merge($errors, $this->validateRowCompactEuTail($row, $lineNumber, $cleanValue));
+    }
+
+    /**
+     * Shared validation for the first columns (through Value amount).
+     *
+     * @param callable(string|null): ?string $cleanValue
+     * @return array<string>
+     */
+    private function validateRowCore(array $row, int $lineNumber, callable $cleanValue): array
+    {
+        $errors = [];
 
         // Validate Date (column 0): DD-MM-YYYY format
         $date = $cleanValue($row[0] ?? null);
@@ -212,47 +225,58 @@ class ValidateDegiroTransactionsCsvService
         $value = $cleanValue($row[11] ?? null);
         if ($value === null || $value === '') {
             $errors[] = "Line {$lineNumber}, column 12 (Value): Value is required.";
-        } elseif (!$this->isValidCurrencyValue($value)) {
+        } elseif (! $this->isValidCurrencyValue($value)) {
             $errors[] = "Line {$lineNumber}, column 12 (Value): Invalid format. Expected numeric value with comma as decimal separator. Value: '{$value}'.";
         }
+
+        return $errors;
+    }
+
+    /**
+     * Legacy columns 12–18 (value currency through order id).
+     *
+     * @param callable(string|null): ?string $cleanValue
+     * @return array<string>
+     */
+    private function validateRowLegacyTail(array $row, int $lineNumber, callable $cleanValue): array
+    {
+        $errors = [];
 
         // Validate Value Currency (column 12): required, valid currency code
         $valueCurrency = $cleanValue($row[12] ?? null);
         if ($valueCurrency === null || $valueCurrency === '') {
             $errors[] = "Line {$lineNumber}, column 13 (Value Currency): Value currency is required.";
-        } elseif (!$this->isValidCurrencyCode($valueCurrency)) {
+        } elseif (! $this->isValidCurrencyCode($valueCurrency)) {
             $errors[] = "Line {$lineNumber}, column 13 (Value Currency): Invalid currency code. Value: '{$valueCurrency}'.";
         }
 
         // Validate Exchange rate (column 13): optional, valid decimal format if provided
         $exchangeRate = $cleanValue($row[13] ?? null);
-        if ($exchangeRate !== null && $exchangeRate !== '' && !$this->isValidCurrencyValue($exchangeRate)) {
+        if ($exchangeRate !== null && $exchangeRate !== '' && ! $this->isValidCurrencyValue($exchangeRate)) {
             $errors[] = "Line {$lineNumber}, column 14 (Exchange rate): Invalid format. Expected numeric value with comma as decimal separator. Value: '{$exchangeRate}'.";
         }
 
         // Validate Transaction and/or third (column 14): optional, valid currency format if provided
         $transactionAndOrThird = $cleanValue($row[14] ?? null);
-        if ($transactionAndOrThird !== null && $transactionAndOrThird !== '' && !$this->isValidCurrencyValue($transactionAndOrThird)) {
+        if ($transactionAndOrThird !== null && $transactionAndOrThird !== '' && ! $this->isValidCurrencyValue($transactionAndOrThird)) {
             $errors[] = "Line {$lineNumber}, column 15 (Transaction and/or third): Invalid format. Expected numeric value with comma as decimal separator. Value: '{$transactionAndOrThird}'.";
         }
 
         // Validate Transaction Currency (column 15): optional, valid currency code if transaction_and_or_third is provided
         $transactionCurrency = $cleanValue($row[15] ?? null);
         if ($transactionAndOrThird !== null && $transactionAndOrThird !== '') {
-            // If transaction_and_or_third is provided, currency must be valid
             if ($transactionCurrency === null || $transactionCurrency === '') {
                 $errors[] = "Line {$lineNumber}, column 16 (Transaction Currency): Transaction currency is required when transaction and/or third is provided.";
-            } elseif (!$this->isValidCurrencyCode($transactionCurrency)) {
+            } elseif (! $this->isValidCurrencyCode($transactionCurrency)) {
                 $errors[] = "Line {$lineNumber}, column 16 (Transaction Currency): Invalid currency code. Value: '{$transactionCurrency}'.";
             }
         }
-        // If transaction_and_or_third is null/empty, currency can also be null/empty (no validation needed)
 
         // Validate Total (column 16): required, valid currency format
         $total = $cleanValue($row[16] ?? null);
         if ($total === null || $total === '') {
             $errors[] = "Line {$lineNumber}, column 17 (Total): Total is required.";
-        } elseif (!$this->isValidCurrencyValue($total)) {
+        } elseif (! $this->isValidCurrencyValue($total)) {
             $errors[] = "Line {$lineNumber}, column 17 (Total): Invalid format. Expected numeric value with comma as decimal separator. Value: '{$total}'.";
         }
 
@@ -260,12 +284,44 @@ class ValidateDegiroTransactionsCsvService
         $totalCurrency = $cleanValue($row[17] ?? null);
         if ($totalCurrency === null || $totalCurrency === '') {
             $errors[] = "Line {$lineNumber}, column 18 (Total Currency): Total currency is required.";
-        } elseif (!$this->isValidCurrencyCode($totalCurrency)) {
+        } elseif (! $this->isValidCurrencyCode($totalCurrency)) {
             $errors[] = "Line {$lineNumber}, column 18 (Total Currency): Invalid currency code. Value: '{$totalCurrency}'.";
         }
 
-        // Validate Order ID (column 18): optional (can be null or empty)
-        // No validation needed as order_id is optional
+        return $errors;
+    }
+
+    /**
+     * Current DEGIRO EU CSV: exchange rate, AutoFX fee, transaction fees EUR, total EUR, optional blank, order id.
+     *
+     * @param callable(string|null): ?string $cleanValue
+     * @return array<string>
+     */
+    private function validateRowCompactEuTail(array $row, int $lineNumber, callable $cleanValue): array
+    {
+        $errors = [];
+
+        $exchangeRate = $cleanValue($row[12] ?? null);
+        if ($exchangeRate !== null && $exchangeRate !== '' && ! $this->isValidCurrencyValue($exchangeRate)) {
+            $errors[] = "Line {$lineNumber}, column 13 (Exchange rate): Invalid format. Value: '{$exchangeRate}'.";
+        }
+
+        $autoFx = $cleanValue($row[13] ?? null);
+        if ($autoFx !== null && $autoFx !== '' && ! $this->isValidCurrencyValue($autoFx)) {
+            $errors[] = "Line {$lineNumber}, column 14 (AutoFX Fee): Invalid format. Value: '{$autoFx}'.";
+        }
+
+        $transactionAndOrThird = $cleanValue($row[14] ?? null);
+        if ($transactionAndOrThird !== null && $transactionAndOrThird !== '' && ! $this->isValidCurrencyValue($transactionAndOrThird)) {
+            $errors[] = "Line {$lineNumber}, column 15 (Transaction / third party fees): Invalid format. Value: '{$transactionAndOrThird}'.";
+        }
+
+        $total = $cleanValue($row[15] ?? null);
+        if ($total === null || $total === '') {
+            $errors[] = "Line {$lineNumber}, column 16 (Total EUR): Total is required.";
+        } elseif (! $this->isValidCurrencyValue($total)) {
+            $errors[] = "Line {$lineNumber}, column 16 (Total EUR): Invalid format. Value: '{$total}'.";
+        }
 
         return $errors;
     }

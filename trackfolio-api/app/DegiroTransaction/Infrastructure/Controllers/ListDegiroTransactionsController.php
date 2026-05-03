@@ -27,7 +27,18 @@ class ListDegiroTransactionsController
         // Ensure per_page is within reasonable bounds
         $perPage = max(1, min($perPage, 100));
 
-        $transactions = $this->repository->findPaginatedByUserId($user->id, $perPage);
+        $sortOrder = strtolower((string) $request->get('sort_order', 'desc'));
+        if (! in_array($sortOrder, ['asc', 'desc'], true)) {
+            $sortOrder = 'desc';
+        }
+
+        $product = trim((string) $request->get('product', ''));
+        if (strlen($product) > 200) {
+            $product = substr($product, 0, 200);
+        }
+        $productFilter = $product !== '' ? $product : null;
+
+        $transactions = $this->repository->findPaginatedByUserId($user->id, $perPage, $sortOrder, $productFilter);
 
         return response()->json([
             'data' => $transactions->items(),

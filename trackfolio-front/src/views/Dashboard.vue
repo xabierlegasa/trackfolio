@@ -42,6 +42,16 @@
           </RouterLink>
         </div>
       </div>
+
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title">{{ $t('dashboard.configuration.title') }}</h2>
+          <p class="text-base-content/70 mb-4">{{ $t('dashboard.configuration.description') }}</p>
+          <RouterLink :to="{ name: 'configuration' }" class="btn btn-outline">
+            {{ $t('dashboard.configuration.button') }}
+          </RouterLink>
+        </div>
+      </div>
     </div>
   </div>
 </template>

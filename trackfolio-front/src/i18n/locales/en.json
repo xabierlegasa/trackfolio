@@ -62,6 +62,26 @@
       "title": "Stats",
       "description": "View your current portfolio composition based on all your transactions.",
       "button": "View Stats"
+    },
+    "configuration": {
+      "title": "Configuration",
+      "description": "Manage account settings and destructive actions such as clearing imported data.",
+      "button": "Open configuration"
+    }
+  },
+  "configuration": {
+    "title": "Configuration",
+    "backToDashboard": "Back to dashboard",
+    "dangerZone": {
+      "title": "Danger zone",
+      "description": "Permanently remove every Degiro transaction you have imported. This cannot be undone.",
+      "deleteAllButton": "Delete all transactions"
+    },
+    "modal": {
+      "title": "Are you sure?",
+      "body": "This will delete all Degiro transactions linked to your account. You cannot undo this action.",
+      "cancel": "Cancel",
+      "confirm": "Yes, delete all"
     }
   },
   "login": {
@@ -89,7 +109,12 @@
   },
   "uploadDegiroTransactions": {
     "title": "Upload Degiro Transactions",
-    "description": "Select and upload your Degiro transaction CSV file. The file will be processed and your transactions will be imported.",
+    "recent": {
+      "title": "Most recent 5 transactions",
+      "empty": "You have no saved transactions yet. After you upload a CSV, your latest rows will appear here.",
+      "loadFailed": "Could not load recent transactions."
+    },
+    "description": "Select and upload your Degiro transaction CSV file. The file will be processed and your transactions will be imported. You can export the transactions from your Degiro panel: Inbox >> Transactions >> click 'Export'.",
     "selectFile": "Select CSV File",
     "fileSelected": "File selected",
     "upload": "Upload",
@@ -111,14 +136,23 @@
   "degiroTransactionsList": {
     "title": "Degiro Transactions List",
     "noTransactions": "No transactions found.",
+    "noMatches": "No transactions match your product filter.",
+    "filter": {
+      "productLabel": "Product contains",
+      "placeholder": "e.g. AMAZON or part of the name",
+      "apply": "Apply",
+      "clear": "Clear"
+    },
     "table": {
       "date": "Date",
+      "time": "Time",
       "product": "Product",
       "quantity": "Quantity",
       "price": "Price",
       "localValue": "Local Value",
       "value": "Value",
-      "orderId": "Order ID"
+      "orderId": "Order ID",
+      "dbId": "DB ID"
     },
     "tooltips": {
       "price": {
@@ -161,7 +195,7 @@
     }
   },
   "portfolioStats": {
-    "title": "Portfolio Stats",
+    "title": "Portfolio",
     "noHoldings": "No holdings found. Your portfolio is empty.",
     "table": {
       "product": "Product",
@@ -175,6 +209,13 @@
   "trades": {
     "title": "Trades",
     "noTrades": "No closed trades found.",
+    "noMatches": "No closed trades match the product filter.",
+    "filter": {
+      "productLabel": "Product contains",
+      "placeholder": "e.g. AMAZON or part of the name",
+      "apply": "Apply",
+      "clear": "Clear"
+    },
     "table": {
       "product": "Product",
       "profitLoss": "Profit/Loss",

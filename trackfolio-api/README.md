@@ -10,8 +10,11 @@ REST API built with Laravel 12 for Trackfolio. This is an API-only application w
 cd infra
 docker-compose up --build
 # api should be available here: http://localhost:8080/
-```
 
+# If docker fails you may need to do this 
+docker compose down
+docker compose up -d --build
+```
 
 ### Run migrations
 ```bash
