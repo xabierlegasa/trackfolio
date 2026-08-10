@@ -25,7 +25,7 @@
         <div class="card-body">
           <h2 class="card-title">{{ $t('dashboard.degiroTransactions.title') }}</h2>
           <p class="text-lg mb-4">
-            {{ $t('dashboard.degiroTransactions.count', { count: transactionCount }) }}
+            {{ $t('dashboard.degiroTransactions.count', { count: formatInteger(transactionCount) }) }}
           </p>
           <RouterLink :to="{ name: 'degiro-transactions-list' }" class="btn btn-success">
             {{ $t('dashboard.degiroTransactions.viewList') }}
@@ -39,6 +39,16 @@
           <p class="text-base-content/70 mb-4">{{ $t('dashboard.portfolioStats.description') }}</p>
           <RouterLink :to="{ name: 'statistics' }" class="btn btn-primary">
             {{ $t('dashboard.portfolioStats.button') }}
+          </RouterLink>
+        </div>
+      </div>
+
+      <div v-if="transactionCount !== null && transactionCount > 0" class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title">{{ $t('dashboard.taxReturn.title') }}</h2>
+          <p class="text-base-content/70 mb-4">{{ $t('dashboard.taxReturn.description') }}</p>
+          <RouterLink :to="{ name: 'tax-return-years' }" class="btn btn-primary">
+            {{ $t('dashboard.taxReturn.button') }}
           </RouterLink>
         </div>
       </div>
@@ -60,6 +70,7 @@
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { authService } from '../services/authService'
+import { formatInteger } from '../utils/numberFormat'
 
 const isLoading = ref(true)
 const error = ref<string | null>(null)

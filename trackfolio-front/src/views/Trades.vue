@@ -106,7 +106,7 @@
                 «
               </button>
               <button class="join-item btn btn-active">
-                {{ $t('trades.pagination.page', { current: currentPage, total: lastPage }) }}
+                {{ $t('trades.pagination.page', { current: formatInteger(currentPage), total: formatInteger(lastPage) }) }}
               </button>
               <button
                 @click="loadPage(currentPage + 1)"
@@ -126,6 +126,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { authService, Trade } from '../services/authService'
+import { formatInteger, formatSignedCurrencyFromMainUnit } from '../utils/numberFormat'
 
 const isLoading = ref<boolean>(true)
 const error = ref<string | null>(null)
@@ -138,11 +139,7 @@ const sortOrder = ref<'asc' | 'desc'>('desc')
 const productFilterDraft = ref('')
 const appliedProductFilter = ref('')
 
-const formatCurrency = (valueMinUnit: number, currency: string): string => {
-  const value = valueMinUnit / 100
-  const sign = value >= 0 ? '+' : ''
-  return `${sign}${value.toFixed(2)} ${currency}`
-}
+const formatCurrency = formatSignedCurrencyFromMainUnit
 
 const getProfitLossClass = (profitLoss: number): string => {
   if (profitLoss > 0) {

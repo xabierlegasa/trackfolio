@@ -7,8 +7,61 @@
     "login": "Iniciar sesión",
     "register": "Registrarse"
   },
-  "home": {
-    "greeting": "Hola Mundo"
+  "taxReturnYears": {
+    "title": "Declaración de la Renta",
+    "backDashboard": "Volver al panel",
+    "empty": "Aún no hay transacciones importadas. Sube primero tu CSV de Degiro.",
+    "exercise": "Ejercicio {year}",
+    "evolutionTitle": "Evolución por años",
+    "evolutionExercise": "Ejercicio",
+    "evolutionResult": "Resultado ejercicio",
+    "evolutionTotal": "Total",
+    "evolutionIncomplete": "Algunos ejercicios no se pudieron calcular (FIFO incompleto); el total solo suma los calculados.",
+    "evolutionDash": "—",
+    "evolutionActions": "Acciones",
+    "viewExercise": "Ver Ejercicio"
+  },
+  "taxReturnYear": {
+    "title": "Ejercicio {year}",
+    "backYears": "Todos los ejercicios",
+    "backDashboard": "Panel",
+    "noSales": "No hay ventas en este año natural en tus datos importados.",
+    "exportCsv": "Exportar CSV",
+    "copyProduct": "Copiar producto",
+    "copyAcquisitionNet": "Copiar adquisición neta",
+    "copyTransmissionNet": "Copiar transmisión neta",
+    "table": {
+      "product": "Producto",
+      "isin": "ISIN",
+      "acquisitionValue": "Valor adq.",
+      "acquisitionCommissions": "Com. Adqu.",
+      "acquisitionNet": "Adq. neta",
+      "transmissionValue": "Valor trans.",
+      "transmissionCommissions": "Com. Transm.",
+      "transmissionNet": "Trans. neta",
+      "netGain": "Gan. neta",
+      "totalNetGain": "Tot. gan. neta",
+      "actions": "Acc."
+    },
+    "audit": {
+      "button": "Auditar",
+      "title": "Auditoría FIFO — {isin} ({year})",
+      "titleWithProduct": "Auditoría FIFO — {isin} · {product} ({year})",
+      "intro": "Transacciones tenidas en cuenta para calcular esta fila (ventas del año y compras emparejadas por FIFO).",
+      "close": "Cerrar",
+      "kind": "Tipo",
+      "kindSell": "Venta",
+      "kindBuyFifo": "Compra (FIFO)",
+      "date": "Fecha",
+      "quantity": "Cantidad",
+      "price": "Precio",
+      "value": "Valor (EUR)",
+      "fees": "Comisiones (EUR)",
+      "txId": "Id trans.",
+      "resultTitle": "Resultado (igual que la fila)",
+      "empty": "No hay datos de auditoría para este ISIN en este año.",
+      "loadError": "No se pudo cargar la auditoría."
+    }
   },
   "register": {
     "title": "Registrarse",
@@ -62,6 +115,11 @@
       "title": "Stats",
       "description": "Visualiza la composición actual de tu cartera basada en todas tus transacciones.",
       "button": "Ver Stats"
+    },
+    "taxReturn": {
+      "title": "Declaración de la Renta",
+      "description": "Informe de transmisiones por año natural con coste FIFO sobre tus operaciones Degiro importadas (EUR).",
+      "button": "Abrir declaración de la renta"
     },
     "configuration": {
       "title": "Configuración",
@@ -199,6 +257,7 @@
     "noHoldings": "No se encontraron posiciones. Tu cartera está vacía.",
     "table": {
       "product": "Producto",
+      "isin": "ISIN",
       "quantity": "Cantidad"
     },
     "pagination": {

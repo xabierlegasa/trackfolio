@@ -67,7 +67,7 @@
                 «
               </button>
               <button class="join-item btn btn-active">
-                {{ $t('portfolioStats.pagination.page', { current: currentPage, total: lastPage }) }}
+                {{ $t('portfolioStats.pagination.page', { current: formatInteger(currentPage), total: formatInteger(lastPage) }) }}
               </button>
               <button
                 @click="loadPage(currentPage + 1)"
@@ -88,6 +88,7 @@
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { authService, PortfolioHolding } from '../services/authService'
+import { formatHoldingQuantity, formatInteger } from '../utils/numberFormat'
 
 /** Same cap as API `product` filter (200 chars). */
 const MAX_PRODUCT_QUERY_LEN = 200
@@ -107,21 +108,7 @@ const currentPage = ref(1)
 const lastPage = ref(1)
 const perPage = ref(10)
 
-const formatQuantity = (quantity: number): string => {
-  // Format quantity with appropriate decimal places
-  // For very small quantities (like Bitcoin), show more decimals
-  if (Math.abs(quantity) < 1) {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 6,
-      maximumFractionDigits: 10
-    }).format(quantity)
-  } else {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 4
-    }).format(quantity)
-  }
-}
+const formatQuantity = formatHoldingQuantity
 
 const loadPage = async (page: number) => {
   if (page < 1) return

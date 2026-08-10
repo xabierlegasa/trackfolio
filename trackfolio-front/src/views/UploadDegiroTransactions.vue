@@ -60,13 +60,13 @@
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-success shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  <span>{{ $t('uploadDegiroTransactions.success.newCount', { count: newCount }) }}</span>
+                  <span>{{ $t('uploadDegiroTransactions.success.newCount', { count: formatInteger(newCount) }) }}</span>
                 </div>
                 <div v-if="ignoredCount > 0" class="flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-success shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  <span>{{ $t('uploadDegiroTransactions.success.ignoredCount', { count: ignoredCount }) }}</span>
+                  <span>{{ $t('uploadDegiroTransactions.success.ignoredCount', { count: formatInteger(ignoredCount) }) }}</span>
                 </div>
               </div>
             </div>
@@ -138,6 +138,12 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { authService, DegiroTransaction, UploadDegiroTransactionsErrorResponse } from '../services/authService'
+import {
+  formatCurrencyFromCents,
+  formatInteger,
+  formatPriceFromTenThousandths,
+  formatQuantityInteger
+} from '../utils/numberFormat'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -155,34 +161,9 @@ const recentTransactions = ref<DegiroTransaction[]>([])
 const recentLoading = ref(true)
 const recentError = ref<string | null>(null)
 
-const formatQuantity = (quantity: number): string => {
-  return new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: 0,
-    minimumFractionDigits: 0
-  }).format(Math.round(Number(quantity)))
-}
-
-const formatCurrency = (amountInCents: number, currency: string): string => {
-  const amount = amountInCents / 100
-  const formatted = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(amount)
-  return `${formatted} ${currency}`
-}
-
-const formatPrice = (amountInTenThousandths: number, currency: string): string => {
-  const amount = amountInTenThousandths / 10000
-  const formatted = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency,
-    minimumFractionDigits: 4,
-    maximumFractionDigits: 4
-  }).format(amount)
-  return `${formatted} ${currency}`
-}
+const formatQuantity = formatQuantityInteger
+const formatCurrency = formatCurrencyFromCents
+const formatPrice = formatPriceFromTenThousandths
 
 const loadRecentTransactions = async () => {
   recentLoading.value = true

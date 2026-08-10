@@ -7,8 +7,61 @@
     "login": "Login",
     "register": "Sign Up"
   },
-  "home": {
-    "greeting": "Hello World"
+  "taxReturnYears": {
+    "title": "Income tax return",
+    "backDashboard": "Back to dashboard",
+    "empty": "No imported transactions yet. Upload your Degiro CSV first.",
+    "exercise": "Exercise {year}",
+    "evolutionTitle": "Evolution by year",
+    "evolutionExercise": "Exercise",
+    "evolutionResult": "Exercise result",
+    "evolutionTotal": "Total",
+    "evolutionIncomplete": "Some years could not be calculated (incomplete FIFO); the total only sums computed years.",
+    "evolutionDash": "—",
+    "evolutionActions": "Actions",
+    "viewExercise": "View exercise"
+  },
+  "taxReturnYear": {
+    "title": "Exercise {year}",
+    "backYears": "All years",
+    "backDashboard": "Dashboard",
+    "noSales": "No sales (disposals) in this calendar year in your imported data.",
+    "exportCsv": "Export CSV",
+    "copyProduct": "Copy product name",
+    "copyAcquisitionNet": "Copy net acquisition",
+    "copyTransmissionNet": "Copy net disposal",
+    "table": {
+      "product": "Product",
+      "isin": "ISIN",
+      "acquisitionValue": "Acq. value",
+      "acquisitionCommissions": "Comm. acq.",
+      "acquisitionNet": "Net acq.",
+      "transmissionValue": "Disposal val.",
+      "transmissionCommissions": "Comm. disp.",
+      "transmissionNet": "Net disposal",
+      "netGain": "Net gain",
+      "totalNetGain": "Total net gain",
+      "actions": "Act."
+    },
+    "audit": {
+      "button": "Audit",
+      "title": "FIFO audit — {isin} ({year})",
+      "titleWithProduct": "FIFO audit — {isin} · {product} ({year})",
+      "intro": "Transactions used to compute this line (sales in this year and matched purchases by FIFO).",
+      "close": "Close",
+      "kind": "Type",
+      "kindSell": "Sale",
+      "kindBuyFifo": "Purchase (FIFO match)",
+      "date": "Date",
+      "quantity": "Qty",
+      "price": "Price",
+      "value": "Value (EUR)",
+      "fees": "Fees (EUR)",
+      "txId": "Tx ID",
+      "resultTitle": "Result (same as row)",
+      "empty": "No audit data for this ISIN in this year.",
+      "loadError": "Could not load audit."
+    }
   },
   "register": {
     "title": "Sign Up",
@@ -62,6 +115,11 @@
       "title": "Stats",
       "description": "View your current portfolio composition based on all your transactions.",
       "button": "View Stats"
+    },
+    "taxReturn": {
+      "title": "Income tax return",
+      "description": "FIFO disposal report by calendar year for your imported Degiro trades (EUR).",
+      "button": "Open income tax return"
     },
     "configuration": {
       "title": "Configuration",
@@ -199,6 +257,7 @@
     "noHoldings": "No holdings found. Your portfolio is empty.",
     "table": {
       "product": "Product",
+      "isin": "ISIN",
       "quantity": "Quantity"
     },
     "pagination": {

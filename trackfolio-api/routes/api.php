@@ -1,15 +1,18 @@
 <?php
 
 use App\Auth\Controllers\AuthController;
-use App\User\Controllers\UserController;
-use App\DegiroTransaction\Infrastructure\Controllers\UploadDegiroTransactionController;
-use App\DegiroTransaction\Infrastructure\Controllers\ListDegiroTransactionsController;
 use App\DegiroTransaction\Infrastructure\Controllers\DeleteAllDegiroTransactionsController;
+use App\DegiroTransaction\Infrastructure\Controllers\ListDegiroTransactionsController;
 use App\DegiroTransaction\Infrastructure\Controllers\PortfolioStatsController;
 use App\DegiroTransaction\Infrastructure\Controllers\TradesController;
 use App\DegiroTransaction\Infrastructure\Controllers\TradesSummaryController;
+use App\DegiroTransaction\Infrastructure\Controllers\UploadDegiroTransactionController;
 use App\Dummy\Controllers\DummyController;
 use App\Isin\Infrastructure\Controllers\StockCandleController;
+use App\TaxReturn\Infrastructure\Controllers\TaxReturnYearAuditController;
+use App\TaxReturn\Infrastructure\Controllers\TaxReturnYearDetailController;
+use App\TaxReturn\Infrastructure\Controllers\TaxReturnYearsController;
+use App\User\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -17,6 +20,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/dummy', [DummyController::class, 'index']);
+Route::post('/dummy/reset-password', [DummyController::class, 'resetPassword']);
 Route::get('/stock-candle', [StockCandleController::class, 'index']);
 
 // Authenticated routes
@@ -25,24 +29,27 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-    
+
     // Authentication routes
     Route::post('/logout', [AuthController::class, 'logout']);
-    
+
     // Account routes
     Route::get('/account', [UserController::class, 'account']);
     Route::get('/degiro-transactions/count', [UserController::class, 'degiroTransactionsCount']);
-    
+
     // Degiro Transaction routes
     Route::post('/upload-degiro-transactions', [UploadDegiroTransactionController::class, 'upload']);
     Route::get('/degiro-transactions', [ListDegiroTransactionsController::class, 'index']);
     Route::delete('/degiro-transactions', [DeleteAllDegiroTransactionsController::class, 'destroy']);
-    
+
     // Portfolio Statistics routes
     Route::get('/portfolio-stats', [PortfolioStatsController::class, 'index']);
-    
+
     // Trades routes
     Route::get('/trades', [TradesController::class, 'index']);
     Route::get('/trades-summary', [TradesSummaryController::class, 'index']);
-});
 
+    Route::get('/tax-return/years', [TaxReturnYearsController::class, 'index']);
+    Route::get('/tax-return/{year}/audit/{isin}', [TaxReturnYearAuditController::class, 'show']);
+    Route::get('/tax-return/{year}', [TaxReturnYearDetailController::class, 'show']);
+});

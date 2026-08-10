@@ -151,7 +151,7 @@
                 «
               </button>
               <button type="button" class="join-item btn btn-active">
-                {{ $t('degiroTransactionsList.pagination.page', { current: currentPage, total: lastPage }) }}
+                {{ $t('degiroTransactionsList.pagination.page', { current: formatInteger(currentPage), total: formatInteger(lastPage) }) }}
               </button>
               <button
                 type="button"
@@ -188,6 +188,12 @@ import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { authService, DegiroTransaction } from '../services/authService'
+import {
+  formatCurrencyFromCents,
+  formatInteger,
+  formatPriceFromTenThousandths,
+  formatQuantityInteger
+} from '../utils/numberFormat'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -219,34 +225,9 @@ const formatDate = (dateString: string): string => {
   return dateString
 }
 
-const formatQuantity = (quantity: number): string => {
-  return new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: 0,
-    minimumFractionDigits: 0
-  }).format(Math.round(Number(quantity)))
-}
-
-const formatCurrency = (amountInCents: number, currency: string): string => {
-  const amount = amountInCents / 100
-  const formatted = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(amount)
-  return `${formatted} ${currency}`
-}
-
-const formatPrice = (amountInTenThousandths: number, currency: string): string => {
-  const amount = amountInTenThousandths / 10000
-  const formatted = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency,
-    minimumFractionDigits: 4,
-    maximumFractionDigits: 4
-  }).format(amount)
-  return `${formatted} ${currency}`
-}
+const formatQuantity = formatQuantityInteger
+const formatCurrency = formatCurrencyFromCents
+const formatPrice = formatPriceFromTenThousandths
 
 const showTooltip = (type: 'price' | 'localValue' | 'value') => {
   tooltipTitle.value = t(`degiroTransactionsList.tooltips.${type}.title`)

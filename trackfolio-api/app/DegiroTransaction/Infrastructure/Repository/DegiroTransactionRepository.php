@@ -3,15 +3,13 @@
 namespace App\DegiroTransaction\Infrastructure\Repository;
 
 use App\DegiroTransaction\Domain\Entity\DegiroTransaction;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class DegiroTransactionRepository
 {
     /**
      * Create a new Degiro transaction.
-     *
-     * @param array $data
-     * @return DegiroTransaction
      */
     public function create(array $data): DegiroTransaction
     {
@@ -22,7 +20,7 @@ class DegiroTransactionRepository
      * Create multiple Degiro transactions.
      * All transactions should have been pre-validated for duplicates.
      *
-     * @param array $transactions Array of transaction data arrays
+     * @param  array  $transactions  Array of transaction data arrays
      * @return int Number of transactions created
      */
     public function createMany(array $transactions): int
@@ -34,15 +32,12 @@ class DegiroTransactionRepository
         // Use bulk insert for better performance
         // All duplicates have been filtered out beforehand
         DegiroTransaction::insert($transactions);
-        
+
         return count($transactions);
     }
 
     /**
      * Get all transactions for a user.
-     *
-     * @param int $userId
-     * @return Collection
      */
     public function findByUserId(int $userId): Collection
     {
@@ -51,9 +46,6 @@ class DegiroTransactionRepository
 
     /**
      * Count transactions for a user.
-     *
-     * @param int $userId
-     * @return int
      */
     public function countByUserId(int $userId): int
     {
@@ -73,10 +65,8 @@ class DegiroTransactionRepository
     /**
      * Get paginated transactions for a user, ordered by `date` (stored as DD-MM-YYYY; parsed for real chronology).
      *
-     * @param int $userId
-     * @param int $perPage
-     * @param string $sortOrder "desc" = newest date first, "asc" = oldest date first
-     * @param string|null $productLike when non-empty, filter with SQL LIKE %...% (wildcards in $productLike are escaped)
+     * @param  string  $sortOrder  "desc" = newest date first, "asc" = oldest date first
+     * @param  string|null  $productLike  when non-empty, filter with SQL LIKE %...% (wildcards in $productLike are escaped)
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
     public function findPaginatedByUserId(int $userId, int $perPage = 10, string $sortOrder = 'desc', ?string $productLike = null)
@@ -102,8 +92,6 @@ class DegiroTransactionRepository
     /**
      * Get existing content hashes for a user.
      *
-     * @param int $userId
-     * @param array $hashes
      * @return array Array of existing content hashes
      */
     public function findExistingContentHashes(int $userId, array $hashes): array
@@ -118,8 +106,6 @@ class DegiroTransactionRepository
      * Get portfolio holdings for a user, grouped by ISIN.
      * Returns products with non-zero quantities, ordered by quantity descending.
      *
-     * @param int $userId
-     * @param int $perPage
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
     public function getPortfolioHoldings(int $userId, int $perPage = 10)
@@ -137,7 +123,7 @@ class DegiroTransactionRepository
 
         // Get the latest product name for each ISIN (only if we have ISINs)
         $latestProducts = collect();
-        if (!empty($isins)) {
+        if (! empty($isins)) {
             $latestProducts = DegiroTransaction::where('user_id', $userId)
                 ->whereIn('isin', $isins)
                 ->select('isin', 'product', 'id')
@@ -155,6 +141,7 @@ class DegiroTransactionRepository
             $holding->product = $latestProducts->get($holding->isin) ?? '';
             $holding->quantity = (float) $holding->total_quantity;
             unset($holding->total_quantity);
+
             return $holding;
         });
 
@@ -166,26 +153,22 @@ class DegiroTransactionRepository
      * Returns products that have been completely closed (total quantity = 0),
      * with profit/loss, first purchase date, and last sale date.
      *
-     * @param int $userId
-     * @param int $perPage
-     * @param string $sortBy
-     * @param string $sortOrder
-     * @param string|null $productLike when non-empty, only ISINs with at least one matching transaction (LIKE %...%)
+     * @param  string|null  $productLike  when non-empty, only ISINs with at least one matching transaction (LIKE %...%)
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
     public function getClosedTrades(int $userId, int $perPage = 10, string $sortBy = 'last_sale_date', string $sortOrder = 'desc', ?string $productLike = null)
     {
         // Validate sort order
         $sortOrder = strtolower($sortOrder) === 'asc' ? 'ASC' : 'DESC';
-        
+
         // Build order by clause
-        $orderBy = match($sortBy) {
+        $orderBy = match ($sortBy) {
             'profit_loss' => 'SUM(value_min_unit)',
             'last_sale_date' => 'STR_TO_DATE(MAX(CASE WHEN quantity < 0 THEN date END), "%d-%m-%Y")',
             'first_purchase_date' => 'STR_TO_DATE(MIN(CASE WHEN quantity > 0 THEN date END), "%d-%m-%Y")',
             default => 'STR_TO_DATE(MAX(CASE WHEN quantity < 0 THEN date END), "%d-%m-%Y")'
         };
-        
+
         // Get aggregated trades grouped by ISIN where total quantity = 0 (completely closed)
         $trades = DegiroTransaction::where('user_id', $userId)
             ->when($productLike !== null && $productLike !== '', function ($query) use ($userId, $productLike) {
@@ -214,7 +197,7 @@ class DegiroTransactionRepository
 
         // Get the latest product name for each ISIN (only if we have ISINs)
         $latestProducts = collect();
-        if (!empty($isins)) {
+        if (! empty($isins)) {
             $latestProducts = DegiroTransaction::where('user_id', $userId)
                 ->whereIn('isin', $isins)
                 ->select('isin', 'product', 'id')
@@ -229,7 +212,7 @@ class DegiroTransactionRepository
 
         // Get currency for each ISIN (use the most recent transaction's value_currency)
         $currencies = collect();
-        if (!empty($isins)) {
+        if (! empty($isins)) {
             $currencies = DegiroTransaction::where('user_id', $userId)
                 ->whereIn('isin', $isins)
                 ->select('isin', 'value_currency', 'id')
@@ -248,6 +231,7 @@ class DegiroTransactionRepository
             $trade->profit_loss = (int) $trade->total_profit_loss;
             $trade->currency = $currencies->get($trade->isin) ?? 'EUR';
             unset($trade->total_quantity, $trade->total_profit_loss);
+
             return $trade;
         });
 
@@ -257,9 +241,6 @@ class DegiroTransactionRepository
     /**
      * Get trades summary for a user.
      * Returns sum of positive trades, sum of negative trades, and the difference.
-     *
-     * @param int $userId
-     * @return array
      */
     public function getTradesSummary(int $userId): array
     {
@@ -277,7 +258,7 @@ class DegiroTransactionRepository
         // Get currency for each ISIN (use the most recent transaction's value_currency)
         $isins = $trades->pluck('isin')->toArray();
         $currencies = collect();
-        if (!empty($isins)) {
+        if (! empty($isins)) {
             $currencies = DegiroTransaction::where('user_id', $userId)
                 ->whereIn('isin', $isins)
                 ->select('isin', 'value_currency', 'id')
@@ -297,15 +278,15 @@ class DegiroTransactionRepository
         foreach ($trades as $trade) {
             $profitLoss = (int) $trade->total_profit_loss;
             $tradeCurrency = $currencies->get($trade->isin) ?? 'EUR';
-            
+
             // Use the first currency found as the main currency
             if ($currency === 'EUR' && $tradeCurrency !== 'EUR') {
                 $currency = $tradeCurrency;
             }
-            
+
             if ($profitLoss > 0) {
                 $positiveSum += $profitLoss;
-            } else if ($profitLoss < 0) {
+            } elseif ($profitLoss < 0) {
                 $negativeSum += abs($profitLoss);
             }
         }
@@ -319,5 +300,77 @@ class DegiroTransactionRepository
             'currency' => $currency,
         ];
     }
-}
 
+    /**
+     * All transactions for the user in chronological order (FIFO processing).
+     * Sorting is done in PHP so it works on SQLite (tests) and MySQL (production).
+     *
+     * @return Collection<int, DegiroTransaction>
+     */
+    public function findChronologicalForUser(int $userId): Collection
+    {
+        $rows = DegiroTransaction::query()
+            ->where('user_id', $userId)
+            ->get([
+                'id',
+                'date',
+                'time',
+                'isin',
+                'product',
+                'quantity',
+                'price_ten_thousandths',
+                'price_currency',
+                'value_min_unit',
+                'transaction_and_or_third',
+                'autofx_fee',
+            ]);
+
+        return $rows
+            ->sortBy(fn (DegiroTransaction $t) => $this->chronologicalSortKey($t))
+            ->values();
+    }
+
+    /**
+     * Calendar year of the oldest transaction for the user, or null if none.
+     */
+    public function minTransactionYear(int $userId): ?int
+    {
+        $dates = DegiroTransaction::query()
+            ->where('user_id', $userId)
+            ->pluck('date');
+
+        if ($dates->isEmpty()) {
+            return null;
+        }
+
+        $minYear = null;
+        foreach ($dates as $date) {
+            try {
+                $y = (int) Carbon::createFromFormat('d-m-Y', (string) $date)->year;
+            } catch (\Throwable) {
+                continue;
+            }
+            $minYear = $minYear === null ? $y : min($minYear, $y);
+        }
+
+        return $minYear;
+    }
+
+    /**
+     * @return array{0: int, 1: int} Unix timestamp (best effort), then id
+     */
+    private function chronologicalSortKey(DegiroTransaction $t): array
+    {
+        $ts = 0;
+        foreach (['d-m-Y H:i:s', 'd-m-Y H:i'] as $fmt) {
+            try {
+                $ts = Carbon::createFromFormat($fmt, $t->date.' '.$t->time)->getTimestamp();
+
+                break;
+            } catch (\Throwable) {
+            }
+        }
+
+        return [$ts, (int) $t->id];
+    }
+}

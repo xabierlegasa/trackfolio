@@ -84,6 +84,7 @@ export interface PortfolioHolding {
   isin: string
   product: string
   quantity: number
+  is_etf?: boolean
 }
 
 export interface PortfolioStatsResponse {
@@ -116,6 +117,77 @@ export interface TradesSummary {
   negative_sum: number
   difference: number
   currency: string
+}
+
+export interface TaxReturnYearEvolutionRow {
+  year: number
+  total_net_gain_cents: number | null
+  fifo_incomplete?: boolean
+}
+
+export interface TaxReturnYearsResponse {
+  years: number[]
+  evolution: TaxReturnYearEvolutionRow[]
+}
+
+export interface TaxReturnYearLine {
+  isin: string
+  product: string
+  acquisition_value_cents: number
+  acquisition_commissions_cents: number
+  transmission_value_cents: number
+  transmission_commissions_cents: number
+  net_gain_cents: number
+}
+
+export interface TaxReturnYearDetailResponse {
+  year: number
+  lines: TaxReturnYearLine[]
+  total_net_gain_cents: number
+}
+
+export interface TaxReturnAuditSummary {
+  acquisition_value_cents: number
+  acquisition_commissions_cents: number
+  transmission_value_cents: number
+  transmission_commissions_cents: number
+  net_gain_cents: number
+}
+
+export type TaxReturnAuditStep =
+  | {
+      kind: 'sell'
+      transaction_id: number
+      date: string
+      time: string
+      isin: string
+      product: string
+      quantity: number
+      price_label: string
+      value_cents: number
+      fees_cents: number
+    }
+  | {
+      kind: 'buy_fifo'
+      source_transaction_id: number
+      date: string
+      time: string
+      isin: string
+      product: string
+      price_ten_thousandths: number
+      price_currency: string
+      price_label: string
+      allocated_quantity: string
+      allocated_value_cents: number
+      allocated_fee_cents: number
+    }
+
+export interface TaxReturnAuditResponse {
+  year: number
+  isin: string
+  product: string
+  steps: TaxReturnAuditStep[]
+  summary: TaxReturnAuditSummary
 }
 
 export const authService = {
@@ -234,6 +306,22 @@ export const authService = {
 
   async getTradesSummary(): Promise<TradesSummary> {
     const response = await apiClient.get<TradesSummary>('/api/trades-summary')
+    return response.data
+  },
+
+  async getTaxReturnYears(): Promise<TaxReturnYearsResponse> {
+    const response = await apiClient.get<TaxReturnYearsResponse>('/api/tax-return/years')
+    return response.data
+  },
+
+  async getTaxReturnYearDetail(year: number): Promise<TaxReturnYearDetailResponse> {
+    const response = await apiClient.get<TaxReturnYearDetailResponse>(`/api/tax-return/${year}`)
+    return response.data
+  },
+
+  async getTaxReturnYearAudit(year: number, isin: string): Promise<TaxReturnAuditResponse> {
+    const encoded = encodeURIComponent(isin)
+    const response = await apiClient.get<TaxReturnAuditResponse>(`/api/tax-return/${year}/audit/${encoded}`)
     return response.data
   }
 }

@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Home from '../views/Home.vue'
 import Register from '../views/Register.vue'
 import Login from '../views/Login.vue'
 import Dashboard from '../views/Dashboard.vue'
@@ -11,14 +10,15 @@ import PortfolioStats from '../views/PortfolioStats.vue'
 import Trades from '../views/Trades.vue'
 import TradeSummary from '../views/TradeSummary.vue'
 import Configuration from '../views/Configuration.vue'
+import TaxReturnYears from '../views/TaxReturnYears.vue'
+import TaxReturnYearDetail from '../views/TaxReturnYearDetail.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: Home
+      redirect: { name: 'dashboard' }
     },
     {
       path: '/register',
@@ -74,6 +74,17 @@ const router = createRouter({
       path: '/trade-summary',
       name: 'trade-summary',
       component: TradeSummary
+    },
+    {
+      path: '/tax-return',
+      name: 'tax-return-years',
+      component: TaxReturnYears
+    },
+    {
+      path: '/tax-return/:year',
+      name: 'tax-return-year',
+      component: TaxReturnYearDetail,
+      props: true
     }
   ]
 })

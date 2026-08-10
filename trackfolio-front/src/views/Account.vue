@@ -75,13 +75,12 @@ const handleLogout = async () => {
     // Clear user store
     userStore.clearAccount()
     
-    // Redirect to home
-    router.push('/')
+    router.push({ name: 'dashboard' })
   } catch (error) {
     console.error('Logout failed:', error)
     // Even if logout fails, clear local state and redirect
     userStore.clearAccount()
-    router.push('/')
+    router.push({ name: 'dashboard' })
   } finally {
     isLoggingOut.value = false
   }

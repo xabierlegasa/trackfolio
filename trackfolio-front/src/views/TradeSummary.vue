@@ -51,6 +51,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { authService, TradesSummary } from '../services/authService'
+import { formatRoundedEurosWithCode } from '../utils/numberFormat'
 
 const isLoading = ref<boolean>(true)
 const error = ref<string | null>(null)
@@ -61,12 +62,7 @@ const summary = ref<TradesSummary>({
   currency: 'EUR'
 })
 
-const formatCurrency = (valueMinUnit: number, currency: string): string => {
-  const value = valueMinUnit / 100
-  const roundedValue = Math.round(value)
-  const formattedValue = new Intl.NumberFormat('en-US').format(roundedValue)
-  return `${formattedValue} ${currency}`
-}
+const formatCurrency = formatRoundedEurosWithCode
 
 const getDifferenceClass = (difference: number): string => {
   if (difference > 0) {
