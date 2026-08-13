@@ -182,6 +182,8 @@
       "message": "{count} transacciones han sido importadas exitosamente.",
       "newCount": "{count} transacción(es) nueva(s) guardada(s).",
       "ignoredCount": "{count} transacción(es) ignorada(s) porque ya existían en la base de datos.",
+      "skippedTitle": "Filas incompletas omitidas",
+      "skippedLine": "Línea {line}: {reason} — Fecha: {date}, Hora: {time}, Producto: {product}, Valor local: {local_value}",
       "goToDashboard": "Ir al Panel de Control"
     },
     "errors": {

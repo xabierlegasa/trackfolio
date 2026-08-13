@@ -43,11 +43,22 @@ export interface DeleteAllDegiroTransactionsResponse {
   deleted_count: number
 }
 
+export interface UploadDegiroTransactionsSkippedRow {
+  line: number
+  reason: string
+  date: string | null
+  time: string | null
+  product: string | null
+  local_value: string | null
+}
+
 export interface UploadDegiroTransactionsResponse {
   message: string
   count: number
   new_count: number
   ignored_count: number
+  skipped_count: number
+  skipped_rows: UploadDegiroTransactionsSkippedRow[]
 }
 
 export interface UploadDegiroTransactionsErrorResponse {

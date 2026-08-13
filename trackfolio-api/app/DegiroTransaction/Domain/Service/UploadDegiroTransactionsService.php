@@ -13,7 +13,8 @@ class UploadDegiroTransactionsService
 {
     public function __construct(
         private DegiroTransactionRepository $repository,
-        private ParseDegiroTransactionRowService $rowParser
+        private ParseDegiroTransactionRowService $rowParser,
+        private SkipIncompleteDegiroCsvRowService $skipIncompleteRow,
     ) {}
 
     /**
@@ -43,6 +44,7 @@ class UploadDegiroTransactionsService
             // Get all parsed transactions and their content hashes for duplicate detection
             $allParsedContentHashes = [];
             $allParsedTransactions = [];
+            $skippedRows = [];
             $lineNumber = 1; // Start at 1 because we already read the header
 
             // First pass: parse all transactions to collect content hashes
@@ -51,6 +53,12 @@ class UploadDegiroTransactionsService
                 
                 // Skip empty rows
                 if (empty(array_filter($row))) {
+                    continue;
+                }
+
+                $skipped = $this->skipIncompleteRow->skippedEntry($row, $lineNumber);
+                if ($skipped !== null) {
+                    $skippedRows[] = $skipped;
                     continue;
                 }
 
@@ -66,6 +74,15 @@ class UploadDegiroTransactionsService
             fclose($handle);
 
             if (empty($allParsedTransactions)) {
+                if (! empty($skippedRows)) {
+                    return UploadDegiroTransactionsResult::success(
+                        'No importable transactions; incomplete rows were skipped',
+                        0,
+                        0,
+                        $skippedRows
+                    );
+                }
+
                 return UploadDegiroTransactionsResult::failure('No valid transactions found in CSV file');
             }
 
@@ -92,7 +109,8 @@ class UploadDegiroTransactionsService
                 return UploadDegiroTransactionsResult::success(
                     "All transactions were already in the database",
                     0,
-                    $ignoredCount
+                    $ignoredCount,
+                    $skippedRows
                 );
             }
 
@@ -114,7 +132,8 @@ class UploadDegiroTransactionsService
                 return UploadDegiroTransactionsResult::success(
                     "{$newCount} Transactions uploaded successfully",
                     $newCount,
-                    $ignoredCount
+                    $ignoredCount,
+                    $skippedRows
                 );
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -132,4 +151,3 @@ class UploadDegiroTransactionsService
         }
     }
 }
-

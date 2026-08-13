@@ -19,22 +19,28 @@ class ValidateDegiroTransactionsCsvService
      */
     private const VALID_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD', 'HKD'];
 
+    public function __construct(
+        private SkipIncompleteDegiroCsvRowService $skipIncompleteRow
+    ) {}
+
     /**
      * Validate the CSV file structure and data format.
      *
      * @param UploadedFile $file
-     * @return array{valid: bool, errors: array<int, string>}
+     * @return array{valid: bool, errors: array<int, string>, skipped_rows: array<int, array{line: int, reason: string}>}
      */
     public function validate(UploadedFile $file): array
     {
         $errors = [];
+        $skippedRows = [];
 
         $handle = fopen($file->getRealPath(), 'r');
         
         if ($handle === false) {
             return [
                 'valid' => false,
-                'errors' => ['Unable to open CSV file']
+                'errors' => ['Unable to open CSV file'],
+                'skipped_rows' => [],
             ];
         }
 
@@ -44,7 +50,8 @@ class ValidateDegiroTransactionsCsvService
             fclose($handle);
             return [
                 'valid' => false,
-                'errors' => ['CSV file is empty or invalid']
+                'errors' => ['CSV file is empty or invalid'],
+                'skipped_rows' => [],
             ];
         }
 
@@ -63,6 +70,12 @@ class ValidateDegiroTransactionsCsvService
                 continue;
             }
 
+            $skipped = $this->skipIncompleteRow->skippedEntry($row, $lineNumber);
+            if ($skipped !== null) {
+                $skippedRows[] = $skipped;
+                continue;
+            }
+
             $rowErrors = $this->validateRow($row, $lineNumber);
             $errors = array_merge($errors, $rowErrors);
         }
@@ -71,7 +84,8 @@ class ValidateDegiroTransactionsCsvService
 
         return [
             'valid' => empty($errors),
-            'errors' => $errors
+            'errors' => $errors,
+            'skipped_rows' => $skippedRows,
         ];
     }
 

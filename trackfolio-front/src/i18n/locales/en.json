@@ -182,6 +182,8 @@
       "message": "{count} transactions have been imported successfully.",
       "newCount": "{count} new transaction(s) saved.",
       "ignoredCount": "{count} transaction(s) were ignored because they already exist in the database.",
+      "skippedTitle": "Skipped incomplete rows",
+      "skippedLine": "Line {line}: {reason} — Date: {date}, Time: {time}, Product: {product}, Local value: {local_value}",
       "goToDashboard": "Go to Dashboard"
     },
     "errors": {

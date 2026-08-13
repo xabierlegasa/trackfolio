@@ -36,6 +36,8 @@ class UploadDegiroTransactionController
                 'count' => $result->count,
                 'new_count' => $result->newCount,
                 'ignored_count' => $result->ignoredCount,
+                'skipped_count' => $result->skippedCount,
+                'skipped_rows' => $result->skippedRows,
             ], 201);
         }
 

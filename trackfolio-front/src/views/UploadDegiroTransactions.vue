@@ -71,6 +71,23 @@
               </div>
             </div>
           </div>
+          <div v-if="skippedRows.length > 0" class="alert alert-warning text-left">
+            <div>
+              <h3 class="font-bold mb-2">{{ $t('uploadDegiroTransactions.success.skippedTitle') }}</h3>
+              <ul class="list-disc list-inside text-sm space-y-1">
+                <li v-for="(row, index) in skippedRows" :key="index">
+                  {{ $t('uploadDegiroTransactions.success.skippedLine', {
+                    line: row.line,
+                    reason: row.reason,
+                    date: row.date || '—',
+                    time: row.time || '—',
+                    product: row.product || '—',
+                    local_value: row.local_value || '—'
+                  }) }}
+                </li>
+              </ul>
+            </div>
+          </div>
           <button
             @click="goToDashboard"
             class="btn btn-primary"
@@ -137,7 +154,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { authService, DegiroTransaction, UploadDegiroTransactionsErrorResponse } from '../services/authService'
+import { authService, DegiroTransaction, UploadDegiroTransactionsErrorResponse, UploadDegiroTransactionsSkippedRow } from '../services/authService'
 import {
   formatCurrencyFromCents,
   formatInteger,
@@ -157,6 +174,7 @@ const success = ref(false)
 const transactionCount = ref(0)
 const newCount = ref(0)
 const ignoredCount = ref(0)
+const skippedRows = ref<UploadDegiroTransactionsSkippedRow[]>([])
 const recentTransactions = ref<DegiroTransaction[]>([])
 const recentLoading = ref(true)
 const recentError = ref<string | null>(null)
@@ -191,6 +209,7 @@ const handleFileSelect = (event: Event) => {
     success.value = false
     newCount.value = 0
     ignoredCount.value = 0
+    skippedRows.value = []
     transactionCount.value = 0
   }
 }
@@ -228,6 +247,7 @@ const handleUpload = async () => {
     transactionCount.value = response.count || 0
     newCount.value = response.new_count || 0
     ignoredCount.value = response.ignored_count || 0
+    skippedRows.value = response.skipped_rows || []
 
     await loadRecentTransactions()
 

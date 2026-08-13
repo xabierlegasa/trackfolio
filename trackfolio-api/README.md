@@ -8,7 +8,7 @@ REST API built with Laravel 12 for Trackfolio. This is an API-only application w
 ### Start Docker
 ```bash
 cd infra
-docker-compose up --build
+docker compose up --build
 # api should be available here: http://localhost:8080/
 
 # If docker fails you may need to do this 
@@ -19,7 +19,7 @@ docker compose up -d --build
 ### Run migrations
 ```bash
 cd infra
-docker-compose exec app php artisan migrate
+docker compose exec app php artisan migrate
 ```
 
 ### Clear caches and restart the app
@@ -32,11 +32,11 @@ make clear-cache
 **Or manually:**
 ```bash
 cd infra
-docker-compose exec app php artisan route:clear
-docker-compose exec app php artisan config:clear
-docker-compose exec app php artisan cache:clear
-docker-compose exec app composer dump-autoload
-docker-compose restart app
+docker compose exec app php artisan route:clear
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan cache:clear
+docker compose exec app composer dump-autoload
+docker compose restart app
 ```
 
 **Other useful Makefile commands:**
