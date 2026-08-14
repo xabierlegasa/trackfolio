@@ -39,6 +39,11 @@ docker compose exec app composer dump-autoload
 docker compose restart app
 ```
 
+See queue_one worker log:
+```bash
+tail -f trackfolio-api/storage/logs/queue_one.worker.log
+```
+
 **Other useful Makefile commands:**
 - `make docker-up` - Start Docker containers
 - `make docker-down` - Stop Docker containers
@@ -56,6 +61,8 @@ docker compose restart app
 - **REST API** without frontend
 - **MySQL 8.0** as database
 - **Redis** for cache and sessions
+- **RabbitMQ** for async queues (`queue_one`)
+- **Supervisor** queue worker (Docker service `queue_worker`)
 - **Docker** for development and testing
 - **CORS** configured for SPA
 - **JSON responses** for all API routes
@@ -82,11 +89,15 @@ The `.env.example` file already contains Docker-compatible configuration:
 - `DB_CONNECTION=mysql`
 - `DB_HOST=db` (Docker service name)
 - `REDIS_HOST=redis` (Docker service name)
+- `QUEUE_CONNECTION=rabbitmq`
+- `RABBITMQ_HOST=rabbitmq` (Docker service name)
+- `RABBITMQ_QUEUE=queue_one`
 - `APP_URL=http://localhost:8080`
 
 **Note:** If running without Docker, update:
 - `DB_HOST=127.0.0.1` or `DB_HOST=localhost`
 - `REDIS_HOST=127.0.0.1` or `REDIS_HOST=localhost`
+- `RABBITMQ_HOST=127.0.0.1` or `RABBITMQ_HOST=localhost`
 
 ### 2. Start with Docker
 
@@ -125,6 +136,8 @@ docker-compose exec app php artisan migrate
 - **API:** http://localhost:8080
 - **Database:** localhost:3306
 - **Redis:** localhost:6379
+- **RabbitMQ AMQP:** localhost:5672
+- **RabbitMQ Management UI:** http://localhost:15672 (user `trackfolio` / password `secret`)
 
 ## Docker Services
 
@@ -134,6 +147,49 @@ The Docker configuration includes the following services:
 - **nginx** - Web server (port 8080)
 - **db** - MySQL 8.0 (port 3306)
 - **redis** - Cache and session storage (port 6379)
+- **rabbitmq** - Message broker (AMQP 5672, Management UI 15672)
+- **queue_worker** - Supervisor running `queue:work` on `queue_one`
+
+## Async jobs (RabbitMQ)
+
+Jobs are processed asynchronously via RabbitMQ. The default queue is `queue_one`.
+
+**Pattern:** create a Job that calls a UseCase in `handle()`, and dispatch it onto `queue_one`:
+
+```php
+SomeUseCaseJob::dispatch($dto); // uses queue_one
+// handle(): app(SomeUseCase::class)->execute($dto);
+```
+
+The local `queue_worker` container runs Supervisor with:
+
+```bash
+php artisan queue:work rabbitmq --queue=queue_one --sleep=3 --tries=3 --max-time=3600
+```
+
+**Smoke test (local only):**
+
+```bash
+curl -X POST http://localhost:8080/api/dummy/ping-queue \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"hello"}'
+```
+
+Then check the worker log or Laravel log:
+
+```bash
+docker compose logs -f queue_worker
+# or
+tail -f storage/logs/queue_one.worker.log
+tail -f storage/logs/laravel.log
+```
+
+After changing Docker/Supervisor config, rebuild:
+
+```bash
+cd infra
+docker compose up -d --build
+```
 
 ## Useful Commands
 
@@ -156,6 +212,8 @@ docker-compose logs -f app
 docker-compose logs -f nginx
 docker-compose logs -f db
 docker-compose logs -f redis
+docker-compose logs -f rabbitmq
+docker-compose logs -f queue_worker
 ```
 
 #### Rebuild containers:
@@ -330,7 +388,8 @@ trackfolio-api/
 │   ├── docker-compose.yml
 │   ├── Dockerfile
 │   ├── nginx/
-│   └── mysql/
+│   ├── mysql/
+│   └── supervisor/     # queue_worker Supervisor configs
 ├── public/             # Public entry point
 ├── resources/          # Resources (empty - API only)
 ├── routes/            # Route definitions
@@ -388,14 +447,17 @@ ports:
 
 If you prefer to run without Docker, you'll need:
 
-1. PHP 8.4 with extensions: pdo_mysql, mbstring, redis, gd, opcache
+1. PHP 8.4 with extensions: pdo_mysql, mbstring, redis, gd, opcache, sockets
 2. MySQL 8.0
 3. Redis 7+
-4. Composer
+4. RabbitMQ 3+
+5. Composer
+6. A queue worker (e.g. Supervisor or `php artisan queue:work rabbitmq --queue=queue_one`)
 
 Update `.env`:
 - `DB_HOST=127.0.0.1`
 - `REDIS_HOST=127.0.0.1`
+- `RABBITMQ_HOST=127.0.0.1`
 
 Then run:
 ```bash

@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/dummy', [DummyController::class, 'index']);
+Route::post('/dummy/ping-queue', [DummyController::class, 'pingQueue']);
 Route::post('/dummy/reset-password', [DummyController::class, 'resetPassword']);
 Route::get('/stock-candle', [StockCandleController::class, 'index']);
 

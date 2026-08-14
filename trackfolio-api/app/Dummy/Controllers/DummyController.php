@@ -2,6 +2,7 @@
 
 namespace App\Dummy\Controllers;
 
+use App\Dummy\Application\Job\PingQueueOneJob;
 use App\Http\Controllers\Controller;
 use App\Isin\Domain\Service\StockApiService;
 use App\User\Domain\Entity\User;
@@ -24,22 +25,43 @@ class DummyController extends Controller
     {
         // $isin = $request->get('isin', '');
 
-        try {
-            // $stockInfo = $this->stockApiService->getStockInfo($isin);
+        // try {
+        //     // $stockInfo = $this->stockApiService->getStockInfo($isin);
 
-            // if (!$stockInfo) {
-            //     return response()->json([
-            //         'error' => 'No se encontró información para el ISIN proporcionado'
-            //     ], 404);
-            // }
+        //     // if (!$stockInfo) {
+        //     //     return response()->json([
+        //     //         'error' => 'No se encontró información para el ISIN proporcionado'
+        //     //     ], 404);
+        //     // }
 
-            return response()->json($stockInfo->toArray());
-            return response()->json($stockInfo->toArray());
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => $e->getMessage()
-            ], 500);
+        //     return response()->json($stockInfo->toArray());
+        // } catch (\Exception $e) {
+        //     return response()->json([
+        //         'error' => $e->getMessage()
+        //     ], 500);
+        // 
+        return response()->json([
+            'message' => 'Hello World',
+        ]);
+    }
+
+    /**
+     * Dispatch PingQueueOneJob to RabbitMQ queue_one (development only).
+     */
+    public function pingQueue(Request $request): JsonResponse
+    {
+        if (! app()->environment('local')) {
+            return response()->json(['error' => 'Not available outside local environment'], 403);
         }
+
+        $message = (string) $request->input('message', 'ping');
+
+        PingQueueOneJob::dispatch($message);
+
+        return response()->json([
+            'message' => 'Job dispatched to queue_one',
+            'payload' => $message,
+        ]);
     }
 
     /**
