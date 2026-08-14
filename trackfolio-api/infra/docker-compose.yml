@@ -15,10 +15,36 @@ services:
     networks:
       - trackfolio-network
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       - PHP_OPCACHE_ENABLE=1
+
+  # Queue worker (Supervisor consumes RabbitMQ queue_one)
+  queue_worker:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    container_name: trackfolio-api-queue-worker
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ../:/var/www
+      - ./php.ini:/usr/local/etc/php/conf.d/custom.ini
+    networks:
+      - trackfolio-network
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    command: ["supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf"]
 
   # Nginx Web Server
   nginx:
@@ -76,6 +102,27 @@ services:
       timeout: 3s
       retries: 5
 
+  # RabbitMQ message broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: trackfolio-api-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: trackfolio
+      RABBITMQ_DEFAULT_PASS: secret
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - trackfolio-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 networks:
   trackfolio-network:
     driver: bridge
@@ -85,4 +132,5 @@ volumes:
     driver: local
   redis_data:
     driver: local
-
+  rabbitmq_data:
+    driver: local

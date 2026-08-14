@@ -24,8 +24,8 @@ return [
     | used by your application. An example configuration is provided for
     | each backend supported by Laravel. You're also free to add more.
     |
-    | Drivers: "sync", "database", "beanstalkd", "sqs", "redis",
-    |          "deferred", "failover", "null"
+| Drivers: "sync", "database", "beanstalkd", "sqs", "redis",
+|          "rabbitmq", "deferred", "failover", "null"
     |
     */
 
@@ -71,6 +71,31 @@ return [
             'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
             'block_for' => null,
             'after_commit' => false,
+        ],
+
+        'rabbitmq' => [
+            'driver' => 'rabbitmq',
+            'queue' => env('RABBITMQ_QUEUE', 'queue_one'),
+            'connection' => PhpAmqpLib\Connection\AMQPLazyConnection::class,
+            'hosts' => [
+                [
+                    'host' => env('RABBITMQ_HOST', '127.0.0.1'),
+                    'port' => env('RABBITMQ_PORT', 5672),
+                    'user' => env('RABBITMQ_USER', 'guest'),
+                    'password' => env('RABBITMQ_PASSWORD', 'guest'),
+                    'vhost' => env('RABBITMQ_VHOST', '/'),
+                ],
+            ],
+            'options' => [
+                'ssl_options' => [
+                    'cafile' => env('RABBITMQ_SSL_CAFILE', null),
+                    'local_cert' => env('RABBITMQ_SSL_LOCALCERT', null),
+                    'local_key' => env('RABBITMQ_SSL_LOCALKEY', null),
+                    'verify_peer' => env('RABBITMQ_SSL_VERIFY_PEER', true),
+                    'passphrase' => env('RABBITMQ_SSL_PASSPHRASE', null),
+                ],
+            ],
+            'worker' => env('RABBITMQ_WORKER', 'default'),
         ],
 
         'deferred' => [
