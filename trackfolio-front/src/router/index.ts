@@ -6,9 +6,6 @@ import Account from '../views/Account.vue'
 import UploadDegiroTransactions from '../views/UploadDegiroTransactions.vue'
 import DegiroTransactionsList from '../views/DegiroTransactionsList.vue'
 import Statistics from '../views/Statistics.vue'
-import PortfolioStats from '../views/PortfolioStats.vue'
-import Trades from '../views/Trades.vue'
-import TradeSummary from '../views/TradeSummary.vue'
 import Configuration from '../views/Configuration.vue'
 import TaxReturnYears from '../views/TaxReturnYears.vue'
 import TaxReturnYearDetail from '../views/TaxReturnYearDetail.vue'
@@ -70,20 +67,17 @@ const router = createRouter({
     {
       path: '/portfolio',
       name: 'portfolio',
-      component: PortfolioStats,
-      meta: { requiresAuth: true }
+      redirect: { name: 'statistics' }
     },
     {
       path: '/trades',
       name: 'trades',
-      component: Trades,
-      meta: { requiresAuth: true }
+      redirect: { name: 'statistics', query: { tab: 'trades' } }
     },
     {
       path: '/trade-summary',
       name: 'trade-summary',
-      component: TradeSummary,
-      meta: { requiresAuth: true }
+      redirect: { name: 'statistics', query: { tab: 'trade-summary' } }
     },
     {
       path: '/tax-return',

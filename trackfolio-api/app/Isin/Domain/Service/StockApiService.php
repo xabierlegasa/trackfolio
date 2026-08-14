@@ -49,15 +49,32 @@ class StockApiService
 
     /**
      * Search for a stock by ISIN.
+     * When $provider is null, tries finnhub → fmp (alphavantage has no ISIN search).
      *
      * @param string $isin
-     * @param string|null $provider Provider to use (PROVIDER_FINNHUB, PROVIDER_FMP, or PROVIDER_ALPHAVANTAGE). Defaults to PROVIDER_FINNHUB.
+     * @param string|null $provider Provider to use, or null for fallback chain.
      * @return StockSearchResponseDTO|null
      * @throws \Exception
      */
     public function searchByIsin(string $isin, ?string $provider = null): ?StockSearchResponseDTO
     {
-        return $this->getProvider($provider)->searchByIsin($isin);
+        if ($provider !== null) {
+            return $this->getProvider($provider)->searchByIsin($isin);
+        }
+
+        foreach ([self::PROVIDER_FINNHUB, self::PROVIDER_FMP] as $providerName) {
+            try {
+                $response = $this->createProvider($providerName)->searchByIsin($isin);
+            } catch (\Throwable) {
+                continue;
+            }
+
+            if ($response !== null && !empty($response->results)) {
+                return $response;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -111,33 +128,49 @@ class StockApiService
 
     /**
      * Get candle data (OHLCV) for a stock symbol with custom parameters.
-     * 
+     * When $provider is null, tries finnhub → fmp → alphavantage until one succeeds.
+     *
      * @param string $symbol The stock symbol (ticker), e.g., 'AAPL'.
      * @param int $fromTimestamp Unix timestamp for start time.
      * @param int $toTimestamp Unix timestamp for end time.
      * @param string $resolution Resolution: '1', '5', '15', '30', '60', 'D', 'W', 'M'.
-     * @param string|null $provider Provider to use (PROVIDER_FINNHUB, PROVIDER_FMP, or PROVIDER_ALPHAVANTAGE). Defaults to PROVIDER_FINNHUB.
+     * @param string|null $provider Provider to use, or null for fallback chain.
      * @return StockCandleDTO|null DTO containing all candle data, or null on error.
      */
     public function getCandleData(string $symbol, int $fromTimestamp, int $toTimestamp, string $resolution = 'D', ?string $provider = null): ?StockCandleDTO
     {
-        return $this->getProvider($provider)->getCandleData($symbol, $fromTimestamp, $toTimestamp, $resolution);
+        if ($provider !== null) {
+            return $this->getProvider($provider)->getCandleData($symbol, $fromTimestamp, $toTimestamp, $resolution);
+        }
+
+        foreach (ResolveIsinClosingPriceService::providerOrder() as $providerName) {
+            try {
+                $result = $this->createProvider($providerName)
+                    ->fetchCandleData($symbol, $fromTimestamp, $toTimestamp, $resolution);
+            } catch (\Throwable) {
+                continue;
+            }
+
+            if ($result->success && $result->candle !== null) {
+                return $result->candle;
+            }
+        }
+
+        return null;
     }
 
     /**
      * Get candle data (OHLCV) for a stock symbol on a specific date.
-     * 
+     * When $provider is null, tries providers with fallback.
+     *
      * @param string $symbol The stock symbol (ticker), e.g., 'AAPL'.
      * @param Carbon $date The desired date (will use closing price of that day).
-     * @param string|null $provider Provider to use (PROVIDER_FINNHUB, PROVIDER_FMP, or PROVIDER_ALPHAVANTAGE). Defaults to PROVIDER_FINNHUB.
+     * @param string|null $provider Provider to use, or null for fallback chain.
      * @return StockCandleDTO|null DTO containing all candle data, or null on error.
      */
     public function getClosingPriceByDate(string $symbol, Carbon $date, ?string $provider = null): ?StockCandleDTO
     {
-        // Inicio del día (00:00:00 UTC)
         $fromTimestamp = $date->copy()->setTimezone('UTC')->startOfDay()->getTimestamp();
-        
-        // Fin del día (23:59:59 UTC)
         $toTimestamp = $date->copy()->setTimezone('UTC')->endOfDay()->getTimestamp();
 
         return $this->getCandleData($symbol, $fromTimestamp, $toTimestamp, 'D', $provider);

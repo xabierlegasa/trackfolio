@@ -96,14 +96,45 @@ export interface PortfolioHolding {
   product: string
   quantity: number
   is_etf?: boolean
+  ticker_symbol?: string | null
+  closing_price_min_unit?: number | null
+  closing_price_currency?: string | null
+  closing_date?: string | null
+  day_change_min_unit?: number | null
+  day_change_percent?: number | null
+  total_gain_loss_min_unit?: number | null
+  total_gain_loss_eur_min_unit?: number | null
+  total_gain_loss_percent?: number | null
+  market_value_min_unit?: number | null
+  market_value_eur_min_unit?: number | null
+  weight_percent?: number | null
+}
+
+export interface PortfolioConcentrationItem {
+  isin: string
+  ticker_symbol: string
+  weight_percent: number
+}
+
+export interface PortfolioPerformanceTemperatureItem {
+  isin: string
+  ticker_symbol: string
+  product: string
+  weight_percent: number
+  day_change_percent: number | null
 }
 
 export interface PortfolioStatsResponse {
   data: PortfolioHolding[]
+  concentration?: PortfolioConcentrationItem[]
+  performance_temperature?: PortfolioPerformanceTemperatureItem[]
   current_page: number
   per_page: number
   total: number
   last_page: number
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
+  usd_to_eur_rate?: number | null
 }
 
 export interface Trade {
@@ -284,11 +315,18 @@ export const authService = {
     return response.data
   },
 
-  async getPortfolioStats(perPage: number = 10, page: number = 1): Promise<PortfolioStatsResponse> {
+  async getPortfolioStats(
+    perPage: number = 10,
+    page: number = 1,
+    sortBy: string = 'weight',
+    sortOrder: 'asc' | 'desc' = 'desc'
+  ): Promise<PortfolioStatsResponse> {
     const response = await apiClient.get<PortfolioStatsResponse>('/api/portfolio-stats', {
       params: {
         per_page: perPage,
-        page: page
+        page: page,
+        sort_by: sortBy,
+        sort_order: sortOrder,
       }
     })
     return response.data

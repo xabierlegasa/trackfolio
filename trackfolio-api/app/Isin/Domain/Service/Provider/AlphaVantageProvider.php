@@ -2,9 +2,11 @@
 
 namespace App\Isin\Domain\Service\Provider;
 
+use App\Isin\Domain\DTO\ProviderCandleCallResult;
 use App\Isin\Domain\DTO\StockCandleDTO;
 use App\Isin\Domain\DTO\StockQuoteDTO;
 use App\Isin\Domain\DTO\StockSearchResponseDTO;
+use App\Isin\Domain\Exception\ProviderHttpException;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
@@ -24,30 +26,12 @@ class AlphaVantageProvider implements StockApiProviderInterface
         }
     }
 
-    /**
-     * Search for a stock by ISIN.
-     * Note: Alpha Vantage does not support direct ISIN search.
-     *
-     * @param string $isin
-     * @return StockSearchResponseDTO|null
-     * @throws \Exception
-     */
     public function searchByIsin(string $isin): ?StockSearchResponseDTO
     {
-        // Alpha Vantage doesn't support ISIN search directly
-        // We could try SYMBOL_SEARCH but it's unlikely to work with ISIN
-        // For now, return null
         Log::warning("AlphaVantageProvider: ISIN search not supported. ISIN: {$isin}");
         return null;
     }
 
-    /**
-     * Get quote information for a symbol.
-     *
-     * @param string $symbol
-     * @return StockQuoteDTO|null
-     * @throws \Exception
-     */
     public function getQuote(string $symbol): ?StockQuoteDTO
     {
         $params = [
@@ -64,7 +48,6 @@ class AlphaVantageProvider implements StockApiProviderInterface
 
         $quote = $data['Global Quote'];
 
-        // Alpha Vantage uses different field names
         return new StockQuoteDTO(
             currentPrice: isset($quote['05. price']) ? (float) $quote['05. price'] : null,
             change: isset($quote['09. change']) ? (float) $quote['09. change'] : null,
@@ -76,27 +59,28 @@ class AlphaVantageProvider implements StockApiProviderInterface
         );
     }
 
-    /**
-     * Get candle data (OHLCV) for a stock symbol with custom parameters.
-     * 
-     * @param string $symbol The stock symbol (ticker), e.g., 'AAPL'.
-     * @param int $fromTimestamp Unix timestamp for start time.
-     * @param int $toTimestamp Unix timestamp for end time.
-     * @param string $resolution Resolution: '1', '5', '15', '30', '60', 'D', 'W', 'M'.
-     * @return StockCandleDTO|null DTO containing all candle data, or null on error.
-     */
     public function getCandleData(string $symbol, int $fromTimestamp, int $toTimestamp, string $resolution = 'D'): ?StockCandleDTO
     {
-        // Alpha Vantage only supports daily resolution for free tier
+        return $this->fetchCandleData($symbol, $fromTimestamp, $toTimestamp, $resolution)->candle;
+    }
+
+    public function fetchCandleData(string $symbol, int $fromTimestamp, int $toTimestamp, string $resolution = 'D'): ProviderCandleCallResult
+    {
         if ($resolution !== 'D') {
-            Log::warning("AlphaVantageProvider: Only daily resolution (D) is supported. Requested: {$resolution}");
-            return null;
+            return new ProviderCandleCallResult(
+                success: false,
+                candle: null,
+                response: null,
+                httpStatus: null,
+                errorMessage: "AlphaVantageProvider: Only daily resolution (D) is supported. Requested: {$resolution}",
+            );
         }
 
         $params = [
-            'function' => 'TIME_SERIES_DAILY_ADJUSTED',
+            // TIME_SERIES_DAILY_ADJUSTED is premium; free tier uses TIME_SERIES_DAILY
+            'function' => 'TIME_SERIES_DAILY',
             'symbol' => strtoupper($symbol),
-            'outputsize' => 'full', // Get full historical data
+            'outputsize' => 'compact', // last ~100 trading days (enough for D-1 / short ranges)
             'apikey' => $this->apiKey,
         ];
 
@@ -104,25 +88,46 @@ class AlphaVantageProvider implements StockApiProviderInterface
             $data = $this->apiRequest($params);
 
             if (!$data) {
-                return null;
+                return new ProviderCandleCallResult(
+                    success: false,
+                    candle: null,
+                    response: $data,
+                    httpStatus: 200,
+                    errorMessage: 'Empty response from Alpha Vantage',
+                );
             }
 
-            // Convert Alpha Vantage format to DTO
-            return $this->convertAlphaVantageCandleToDto($data, $fromTimestamp, $toTimestamp);
-        } catch (\Exception $e) {
-            error_log("Error en la petición Alpha Vantage para {$symbol}. Error: " . $e->getMessage());
-            return null;
+            $candle = $this->convertAlphaVantageCandleToDto($data, $fromTimestamp, $toTimestamp);
+            $hasClose = $candle !== null
+                && $candle->status === 'ok'
+                && !empty($candle->closePrices);
+
+            return new ProviderCandleCallResult(
+                success: $hasClose,
+                candle: $candle,
+                response: $data,
+                httpStatus: 200,
+                errorMessage: $hasClose ? null : 'No closing price in Alpha Vantage candle response',
+            );
+        } catch (ProviderHttpException $e) {
+            return new ProviderCandleCallResult(
+                success: false,
+                candle: null,
+                response: $e->rawResponse,
+                httpStatus: $e->httpStatus,
+                errorMessage: $e->getMessage(),
+            );
+        } catch (\Throwable $e) {
+            return new ProviderCandleCallResult(
+                success: false,
+                candle: null,
+                response: null,
+                httpStatus: null,
+                errorMessage: $e->getMessage(),
+            );
         }
     }
 
-    /**
-     * Convert Alpha Vantage candle data format to StockCandleDTO.
-     *
-     * @param array $data
-     * @param int $fromTimestamp
-     * @param int $toTimestamp
-     * @return StockCandleDTO|null
-     */
     private function convertAlphaVantageCandleToDto(array $data, int $fromTimestamp, int $toTimestamp): ?StockCandleDTO
     {
         $timeSeriesKey = 'Time Series (Daily)';
@@ -140,8 +145,6 @@ class AlphaVantageProvider implements StockApiProviderInterface
         }
 
         $timeSeries = $data[$timeSeriesKey];
-        $fromDate = Carbon::createFromTimestamp($fromTimestamp)->format('Y-m-d');
-        $toDate = Carbon::createFromTimestamp($toTimestamp)->format('Y-m-d');
 
         $closePrices = [];
         $highPrices = [];
@@ -150,13 +153,8 @@ class AlphaVantageProvider implements StockApiProviderInterface
         $timestamps = [];
         $volumes = [];
 
-        // Alpha Vantage returns data with dates as keys (YYYY-MM-DD format)
+        // Persist the full compact series (all days returned); callers filter by requested range.
         foreach ($timeSeries as $date => $candle) {
-            // Filter by date range
-            if ($date < $fromDate || $date > $toDate) {
-                continue;
-            }
-
             $dateCarbon = Carbon::parse($date);
             $timestamp = $dateCarbon->getTimestamp();
 
@@ -164,17 +162,17 @@ class AlphaVantageProvider implements StockApiProviderInterface
             $highPrices[] = (float) ($candle['2. high'] ?? 0);
             $lowPrices[] = (float) ($candle['3. low'] ?? 0);
             $openPrices[] = (float) ($candle['1. open'] ?? 0);
-            $volumes[] = (int) ($candle['6. volume'] ?? 0);
+            // Daily free series uses "5. volume"; adjusted (premium) uses "6. volume"
+            $volumes[] = (int) ($candle['5. volume'] ?? $candle['6. volume'] ?? 0);
             $timestamps[] = $timestamp;
         }
 
-        // Sort by timestamp ascending (oldest first)
         if (!empty($timestamps)) {
             array_multisort($timestamps, SORT_ASC, $closePrices, $highPrices, $lowPrices, $openPrices, $volumes);
         }
 
         return new StockCandleDTO(
-            status: 'ok',
+            status: empty($closePrices) ? 'no_data' : 'ok',
             closePrices: $closePrices,
             highPrices: $highPrices,
             lowPrices: $lowPrices,
@@ -185,11 +183,8 @@ class AlphaVantageProvider implements StockApiProviderInterface
     }
 
     /**
-     * Make a request to Alpha Vantage API.
-     *
-     * @param array $params
-     * @return array|null
-     * @throws \Exception
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>|null
      */
     private function apiRequest(array $params): ?array
     {
@@ -198,31 +193,49 @@ class AlphaVantageProvider implements StockApiProviderInterface
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        
+
         $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
         Log::info('curl request to Alpha Vantage: ' . $url);
         Log::info('response: ' . $response);
         Log::info('http code: ' . $httpCode);
 
+        $decoded = is_string($response) ? json_decode($response, true) : null;
+
         if ($response === false || $httpCode !== 200) {
-            throw new \Exception("Error en la petición a Alpha Vantage. Código HTTP: {$httpCode}");
+            throw new ProviderHttpException(
+                "Error en la petición a Alpha Vantage. Código HTTP: {$httpCode}",
+                $httpCode ?: null,
+                is_array($decoded) ? $decoded : (is_string($response) ? $response : null),
+            );
         }
 
-        $data = json_decode($response, true);
-        
-        // Alpha Vantage returns errors in the response body even with HTTP 200
-        if (isset($data['Error Message'])) {
-            throw new \Exception("Error devuelto por Alpha Vantage: " . $data['Error Message']);
+        if (isset($decoded['Error Message'])) {
+            throw new ProviderHttpException(
+                'Error devuelto por Alpha Vantage: ' . $decoded['Error Message'],
+                $httpCode,
+                $decoded,
+            );
         }
 
-        if (isset($data['Note'])) {
-            throw new \Exception("Nota de Alpha Vantage (posible límite excedido): " . $data['Note']);
+        if (isset($decoded['Information'])) {
+            throw new ProviderHttpException(
+                'Información de Alpha Vantage: ' . $decoded['Information'],
+                $httpCode,
+                $decoded,
+            );
         }
-        
-        return $data;
+
+        if (isset($decoded['Note'])) {
+            throw new ProviderHttpException(
+                'Nota de Alpha Vantage (posible límite excedido): ' . $decoded['Note'],
+                $httpCode,
+                $decoded,
+            );
+        }
+
+        return is_array($decoded) ? $decoded : null;
     }
 }
-

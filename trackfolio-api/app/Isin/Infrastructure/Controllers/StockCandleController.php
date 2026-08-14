@@ -24,7 +24,8 @@ class StockCandleController extends Controller
      * - date (optional): Date in YYYY-MM-DD format. Defaults to today.
      * - from (optional): Unix timestamp for start time. If provided, overrides date.
      * - to (optional): Unix timestamp for end time. If provided, overrides date.
-     * - provider (optional): Provider to use ('finnhub' or 'fmp'). Defaults to 'finnhub'.
+     * - provider (optional): Provider to use ('finnhub', 'fmp', or 'alphavantage').
+     *   If omitted, providers are tried with fallback (finnhub → fmp → alphavantage).
      *
      * @param Request $request
      * @return JsonResponse
@@ -39,7 +40,7 @@ class StockCandleController extends Controller
             ], 400);
         }
 
-        // Get provider from request (optional, defaults to finnhub)
+        // Get provider from request (optional; null = fallback chain)
         $provider = $request->get('provider');
         if ($provider !== null && !in_array($provider, [StockApiService::PROVIDER_FINNHUB, StockApiService::PROVIDER_FMP, StockApiService::PROVIDER_ALPHAVANTAGE])) {
             return response()->json([

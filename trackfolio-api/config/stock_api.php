@@ -3,22 +3,11 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Stock API Provider
-    |--------------------------------------------------------------------------
-    |
-    | This option controls which stock API provider to use.
-    | Available options: 'finnhub', 'fmp'
-    |
-    */
-
-    'provider' => env('STOCK_API_PROVIDER', 'fmp'),
-
-    /*
-    |--------------------------------------------------------------------------
     | API Keys
     |--------------------------------------------------------------------------
     |
     | API keys for each provider. These should be set in your .env file.
+    | The active provider is chosen per request (defaults to finnhub in code).
     |
     */
 

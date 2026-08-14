@@ -238,6 +238,11 @@
   },
   "statistics": {
     "title": "Stats",
+    "tabs": {
+      "portfolio": "Portfolio",
+      "trades": "Trades",
+      "tradeSummary": "Resumen"
+    },
     "portfolio": {
       "title": "Cartera",
       "description": "Visualiza la composición actual de tu cartera basada en todas tus transacciones.",
@@ -260,7 +265,23 @@
     "table": {
       "product": "Producto",
       "isin": "ISIN",
-      "quantity": "Cantidad"
+      "symbols": "Symbol",
+      "price": "Precio",
+      "quantity": "Cantidad",
+      "total": "Total",
+      "totalEur": "Total EUR",
+      "change": "Cambio",
+      "totalGainLoss": "Ganancia",
+      "totalGainLossEur": "Ganancia EUR",
+      "weight": "%",
+      "closingPrice": "Precio (D-1)",
+      "closingPriceWithDate": "Precio cierre {date}",
+      "priceUnavailable": "—",
+      "concentrationRisk": "Riesgo de concentración"
+    },
+    "performanceTemperature": {
+      "title": "Performance temperature",
+      "subtitle": "El tamaño representa el peso en cartera. El color indica la variación del día (D-1)."
     },
     "pagination": {
       "page": "Página {current} de {total}",

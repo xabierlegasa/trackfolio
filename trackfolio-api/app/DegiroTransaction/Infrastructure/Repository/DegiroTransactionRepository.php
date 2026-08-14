@@ -149,6 +149,105 @@ class DegiroTransactionRepository
     }
 
     /**
+     * All open holdings (non-paginated) as isin + quantity + product.
+     *
+     * @return \Illuminate\Support\Collection<int, object{isin: string, quantity: float, product: string}>
+     */
+    public function getAllPortfolioHoldings(int $userId)
+    {
+        $holdings = DegiroTransaction::where('user_id', $userId)
+            ->selectRaw('isin, SUM(quantity) as quantity')
+            ->groupBy('isin')
+            ->havingRaw('SUM(quantity) != 0')
+            ->get();
+
+        $isins = $holdings->pluck('isin')->all();
+        $latestProducts = collect();
+        if ($isins !== []) {
+            $latestProducts = DegiroTransaction::where('user_id', $userId)
+                ->whereIn('isin', $isins)
+                ->select('isin', 'product', 'id')
+                ->orderBy('id', 'desc')
+                ->get()
+                ->groupBy('isin')
+                ->map(fn ($transactions) => (string) ($transactions->first()->product ?? ''));
+        }
+
+        return $holdings->map(function ($row) use ($latestProducts) {
+            return (object) [
+                'isin' => (string) $row->isin,
+                'quantity' => (float) $row->quantity,
+                'product' => (string) ($latestProducts->get($row->isin) ?? ''),
+            ];
+        })->values();
+    }
+
+    /**
+     * @deprecated Use getAllPortfolioHoldings()
+     * @return \Illuminate\Support\Collection<int, object{isin: string, quantity: float}>
+     */
+    public function getAllPortfolioHoldingQuantities(int $userId)
+    {
+        return $this->getAllPortfolioHoldings($userId)->map(function ($row) {
+            return (object) [
+                'isin' => $row->isin,
+                'quantity' => $row->quantity,
+            ];
+        });
+    }
+
+    /**
+     * Remaining cost basis (cents) for an open ISIN position using average-cost on sells.
+     * Price comes from price_ten_thousandths (converted to cents).
+     */
+    public function getOpenPositionCostMinUnit(int $userId, string $isin): ?int
+    {
+        $rows = DegiroTransaction::query()
+            ->where('user_id', $userId)
+            ->where('isin', $isin)
+            ->get(['id', 'date', 'time', 'quantity', 'price_ten_thousandths']);
+
+        if ($rows->isEmpty()) {
+            return null;
+        }
+
+        $ordered = $rows
+            ->sortBy(fn (DegiroTransaction $t) => $this->chronologicalSortKey($t))
+            ->values();
+
+        $qty = 0.0;
+        $costCents = 0.0;
+
+        foreach ($ordered as $tx) {
+            $q = (float) $tx->quantity;
+            $priceCents = ((int) $tx->price_ten_thousandths) / 100.0;
+
+            if ($q > 0) {
+                $costCents += $priceCents * $q;
+                $qty += $q;
+                continue;
+            }
+
+            if ($q < 0 && $qty > 0.0000001) {
+                $avg = $costCents / $qty;
+                $sellQty = min(abs($q), $qty);
+                $costCents -= $avg * $sellQty;
+                $qty -= $sellQty;
+                if ($qty < 0.0000001) {
+                    $qty = 0.0;
+                    $costCents = 0.0;
+                }
+            }
+        }
+
+        if ($qty <= 0.0000001) {
+            return null;
+        }
+
+        return (int) round($costCents);
+    }
+
+    /**
      * Get closed trades for a user, grouped by ISIN.
      * Returns products that have been completely closed (total quantity = 0),
      * with profit/loss, first purchase date, and last sale date.

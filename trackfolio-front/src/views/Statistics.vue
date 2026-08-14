@@ -1,42 +1,120 @@
 <template>
   <div class="container mx-auto p-8">
-    <h1 class="text-4xl font-bold mb-8">{{ $t('statistics.title') }}</h1>
-    
-    <div class="space-y-6">
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">{{ $t('statistics.portfolio.title') }}</h2>
-          <p class="text-base-content/70 mb-4">{{ $t('statistics.portfolio.description') }}</p>
-          <RouterLink :to="{ name: 'portfolio' }" class="btn btn-primary">
-            {{ $t('statistics.portfolio.button') }}
-          </RouterLink>
-        </div>
-      </div>
-      
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">{{ $t('statistics.trades.title') }}</h2>
-          <p class="text-base-content/70 mb-4">{{ $t('statistics.trades.description') }}</p>
-          <RouterLink :to="{ name: 'trades' }" class="btn btn-primary">
-            {{ $t('statistics.trades.button') }}
-          </RouterLink>
-        </div>
-      </div>
-      
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">{{ $t('statistics.tradesSummary.title') }}</h2>
-          <p class="text-base-content/70 mb-4">{{ $t('statistics.tradesSummary.description') }}</p>
-          <RouterLink :to="{ name: 'trade-summary' }" class="btn btn-primary">
-            {{ $t('statistics.tradesSummary.button') }}
-          </RouterLink>
-        </div>
-      </div>
+    <h1 class="text-4xl font-bold mb-6">{{ $t('statistics.title') }}</h1>
+
+    <div role="tablist" class="tabs tabs-boxed mb-6 w-full max-w-xl">
+      <button
+        type="button"
+        role="tab"
+        class="tab flex-1"
+        :class="{ 'tab-active': activeTab === 'portfolio' }"
+        :aria-selected="activeTab === 'portfolio'"
+        @click="setTab('portfolio')"
+      >
+        {{ $t('statistics.tabs.portfolio') }}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="tab flex-1"
+        :class="{ 'tab-active': activeTab === 'trades' }"
+        :aria-selected="activeTab === 'trades'"
+        @click="setTab('trades')"
+      >
+        {{ $t('statistics.tabs.trades') }}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="tab flex-1"
+        :class="{ 'tab-active': activeTab === 'trade-summary' }"
+        :aria-selected="activeTab === 'trade-summary'"
+        @click="setTab('trade-summary')"
+      >
+        {{ $t('statistics.tabs.tradeSummary') }}
+      </button>
+    </div>
+
+    <div v-show="activeTab === 'portfolio'">
+      <PortfolioStats embedded />
+    </div>
+
+    <div v-if="visitedTrades" v-show="activeTab === 'trades'">
+      <Suspense>
+        <TradesPanel embedded />
+        <template #fallback>
+          <div class="flex justify-center py-12">
+            <span class="loading loading-spinner loading-lg"></span>
+          </div>
+        </template>
+      </Suspense>
+    </div>
+
+    <div v-if="visitedTradeSummary" v-show="activeTab === 'trade-summary'">
+      <Suspense>
+        <TradeSummaryPanel embedded />
+        <template #fallback>
+          <div class="flex justify-center py-12">
+            <span class="loading loading-spinner loading-lg"></span>
+          </div>
+        </template>
+      </Suspense>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
-</script>
+import { computed, defineAsyncComponent, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import PortfolioStats from './PortfolioStats.vue'
 
+const TradesPanel = defineAsyncComponent(() => import('./Trades.vue'))
+const TradeSummaryPanel = defineAsyncComponent(() => import('./TradeSummary.vue'))
+
+type StatsTab = 'portfolio' | 'trades' | 'trade-summary'
+
+const VALID_TABS: StatsTab[] = ['portfolio', 'trades', 'trade-summary']
+
+const route = useRoute()
+const router = useRouter()
+
+const parseTab = (value: unknown): StatsTab => {
+  if (typeof value === 'string' && VALID_TABS.includes(value as StatsTab)) {
+    return value as StatsTab
+  }
+  return 'portfolio'
+}
+
+const activeTab = computed(() => parseTab(route.query.tab))
+
+const visitedTrades = ref(false)
+const visitedTradeSummary = ref(false)
+
+watch(
+  activeTab,
+  (tab) => {
+    if (tab === 'trades') {
+      visitedTrades.value = true
+    }
+    if (tab === 'trade-summary') {
+      visitedTradeSummary.value = true
+    }
+  },
+  { immediate: true },
+)
+
+const setTab = (tab: StatsTab) => {
+  if (tab === activeTab.value) {
+    return
+  }
+
+  const query = { ...route.query }
+  if (tab === 'portfolio') {
+    delete query.tab
+  } else {
+    query.tab = tab
+  }
+
+  router.replace({ name: 'statistics', query })
+}
+</script>
