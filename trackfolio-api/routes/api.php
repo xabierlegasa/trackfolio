@@ -22,6 +22,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/dummy', [DummyController::class, 'index']);
 Route::post('/dummy/ping-queue', [DummyController::class, 'pingQueue']);
 Route::post('/dummy/reset-password', [DummyController::class, 'resetPassword']);
+Route::get('/dummy/test-api', [DummyController::class, 'testApi']);
 Route::get('/stock-candle', [StockCandleController::class, 'index']);
 
 // Authenticated routes

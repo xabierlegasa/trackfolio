@@ -2,10 +2,10 @@
 
 namespace App\Isin\Domain\Service\Provider;
 
+use App\Isin\Domain\DTO\ProviderCandleCallResult;
 use App\Isin\Domain\DTO\StockCandleDTO;
 use App\Isin\Domain\DTO\StockQuoteDTO;
 use App\Isin\Domain\DTO\StockSearchResponseDTO;
-use Carbon\Carbon;
 
 interface StockApiProviderInterface
 {
@@ -29,7 +29,7 @@ interface StockApiProviderInterface
 
     /**
      * Get candle data (OHLCV) for a stock symbol with custom parameters.
-     * 
+     *
      * @param string $symbol The stock symbol (ticker), e.g., 'AAPL'.
      * @param int $fromTimestamp Unix timestamp for start time.
      * @param int $toTimestamp Unix timestamp for end time.
@@ -37,5 +37,15 @@ interface StockApiProviderInterface
      * @return StockCandleDTO|null DTO containing all candle data, or null on error.
      */
     public function getCandleData(string $symbol, int $fromTimestamp, int $toTimestamp, string $resolution = 'D'): ?StockCandleDTO;
-}
 
+    /**
+     * Fetch candle data with HTTP status / raw response metadata for logging.
+     *
+     * @param string $symbol
+     * @param int $fromTimestamp
+     * @param int $toTimestamp
+     * @param string $resolution
+     * @return ProviderCandleCallResult
+     */
+    public function fetchCandleData(string $symbol, int $fromTimestamp, int $toTimestamp, string $resolution = 'D'): ProviderCandleCallResult;
+}

@@ -1,6 +1,6 @@
 <template>
-  <div class="container mx-auto p-8">
-    <h1 class="text-4xl font-bold mb-8">{{ $t('trades.title') }}</h1>
+  <div :class="embedded ? undefined : 'container mx-auto p-8'">
+    <h1 v-if="!embedded" class="text-4xl font-bold mb-8">{{ $t('trades.title') }}</h1>
     
     <div v-if="isLoading" class="flex justify-center">
       <span class="loading loading-spinner loading-lg"></span>
@@ -127,6 +127,10 @@
 import { ref, onMounted } from 'vue'
 import { authService, Trade } from '../services/authService'
 import { formatInteger, formatSignedCurrencyFromMainUnit } from '../utils/numberFormat'
+
+withDefaults(defineProps<{ embedded?: boolean }>(), {
+  embedded: false,
+})
 
 const isLoading = ref<boolean>(true)
 const error = ref<string | null>(null)

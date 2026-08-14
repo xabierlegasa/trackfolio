@@ -238,6 +238,11 @@
   },
   "statistics": {
     "title": "Stats",
+    "tabs": {
+      "portfolio": "Portfolio",
+      "trades": "Trades",
+      "tradeSummary": "Summary"
+    },
     "portfolio": {
       "title": "Portfolio",
       "description": "View your current portfolio composition based on all your transactions.",
@@ -260,7 +265,23 @@
     "table": {
       "product": "Product",
       "isin": "ISIN",
-      "quantity": "Quantity"
+      "symbols": "Symbol",
+      "price": "Price",
+      "quantity": "Quantity",
+      "total": "Total",
+      "totalEur": "Total EUR",
+      "change": "Change",
+      "totalGainLoss": "Gain",
+      "totalGainLossEur": "Gain EUR",
+      "weight": "%",
+      "closingPrice": "Price (D-1)",
+      "closingPriceWithDate": "Closing price {date}",
+      "priceUnavailable": "—",
+      "concentrationRisk": "Concentration risk"
+    },
+    "performanceTemperature": {
+      "title": "Performance temperature",
+      "subtitle": "Box size represents the asset's weight in your portfolio. Color indicates D-1 performance."
     },
     "pagination": {
       "page": "Page {current} of {total}",

@@ -51,6 +51,43 @@ export function formatCurrencyFromCents(amountInCents: number, currency: string)
   }).format(amount)
 }
 
+/** Portfolio price style: "$ 1,234.56" (symbol prefix, en-US decimals). */
+export function formatPricePrefixFromCents(
+  amountInCents: number,
+  currency: string,
+  fractionDigits = 2,
+): string {
+  const amount = amountInCents / 100
+  const formatted = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(Math.abs(amount))
+  const symbol = currency === 'EUR' ? '€' : currency === 'USD' ? '$' : currency
+  const sign = amount < 0 ? '-' : ''
+  return `${sign}${symbol} ${formatted}`
+}
+
+/** Signed portfolio money: "+$ 1,234.56" / "-$ 1,234.56" (symbol prefix, en-US decimals). */
+export function formatSignedCurrencyFromCents(
+  amountInCents: number,
+  currency: string,
+  fractionDigits = 2,
+): string {
+  const amount = amountInCents / 100
+  const sign = amount > 0 ? '+' : amount < 0 ? '-' : ''
+  const formatted = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(Math.abs(amount))
+  const symbol = currency === 'EUR' ? '€' : currency === 'USD' ? '$' : currency
+  return `${sign}${symbol} ${formatted}`
+}
+
+export function formatSignedPercent(percent: number): string {
+  const sign = percent > 0 ? '+' : percent < 0 ? '-' : ''
+  return `(${sign}${formatDecimal(Math.abs(percent), 2, 2)}%)`
+}
+
 export function formatPriceFromTenThousandths(amountInTenThousandths: number, currency: string): string {
   const amount = amountInTenThousandths / 10000
   return new Intl.NumberFormat(DISPLAY_NUMBER_LOCALE, {

@@ -2,10 +2,12 @@
 
 namespace App\Isin\Domain\Service\Provider;
 
+use App\Isin\Domain\DTO\ProviderCandleCallResult;
 use App\Isin\Domain\DTO\StockCandleDTO;
 use App\Isin\Domain\DTO\StockQuoteDTO;
 use App\Isin\Domain\DTO\StockSearchResponseDTO;
 use App\Isin\Domain\DTO\StockSearchResultDTO;
+use App\Isin\Domain\Exception\ProviderHttpException;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
@@ -18,32 +20,25 @@ class FmpProvider implements StockApiProviderInterface
     public function __construct()
     {
         $this->apiKey = Config::get('stock_api.fmp.api_key', '');
-        $this->baseUrl = 'https://financialmodelingprep.com/api/';
+        // Stable API (legacy /api/v3 and /api/v4 endpoints are deprecated)
+        $this->baseUrl = 'https://financialmodelingprep.com/stable/';
 
         if (empty($this->apiKey)) {
             throw new \RuntimeException('FMP_API_KEY is not set in environment variables');
         }
     }
 
-    /**
-     * Search for a stock by ISIN.
-     *
-     * @param string $isin
-     * @return StockSearchResponseDTO|null
-     * @throws \Exception
-     */
     public function searchByIsin(string $isin): ?StockSearchResponseDTO
     {
-        $data = $this->apiRequest('v4/search/isin', ['isin' => $isin]);
-        
+        $data = $this->apiRequest('search-isin', ['isin' => $isin]);
+
         if (!$data || empty($data)) {
             return null;
         }
 
-        // FMP devuelve un array directamente, no un objeto con 'result'
-        // Convertir el formato de FMP al formato esperado por el DTO
+        $items = $this->normalizeListResponse($data);
         $results = [];
-        foreach ($data as $item) {
+        foreach ($items as $item) {
             if (!isset($item['symbol'])) {
                 continue;
             }
@@ -59,30 +54,56 @@ class FmpProvider implements StockApiProviderInterface
     }
 
     /**
-     * Get quote information for a symbol.
+     * Search by ISIN and return exchange when FMP provides it.
      *
-     * @param string $symbol
-     * @return StockQuoteDTO|null
-     * @throws \Exception
+     * @return array{symbol: string, stock_exchange: ?string}|null
      */
-    public function getQuote(string $symbol): ?StockQuoteDTO
+    public function searchByIsinWithExchange(string $isin): ?array
     {
-        // FMP usa el endpoint 'quote' para obtener cotizaciones
-        $data = $this->apiRequest('quote/' . strtoupper($symbol));
-        
+        $data = $this->apiRequest('search-isin', ['isin' => $isin]);
+
         if (!$data || empty($data)) {
             return null;
         }
 
-        // FMP devuelve un array, tomamos el primer elemento
-        $quote = is_array($data) && isset($data[0]) ? $data[0] : $data;
+        $items = $this->normalizeListResponse($data);
+        if ($items === [] || !isset($items[0]['symbol'])) {
+            return null;
+        }
 
-        // Mapear los campos de FMP al formato del DTO
-        // FMP usa: price, change, changesPercentage, dayLow, dayHigh, open, previousClose
+        $item = $items[0];
+
+        return [
+            'symbol' => (string) $item['symbol'],
+            'stock_exchange' => isset($item['exchange'])
+                ? (string) $item['exchange']
+                : (isset($item['stockExchange']) ? (string) $item['stockExchange'] : null),
+        ];
+    }
+
+    public function getQuote(string $symbol): ?StockQuoteDTO
+    {
+        $data = $this->apiRequest('quote', ['symbol' => strtoupper($symbol)]);
+
+        if (!$data || empty($data)) {
+            return null;
+        }
+
+        $items = $this->normalizeListResponse($data);
+        $quote = $items[0] ?? (is_array($data) ? $data : null);
+
+        if (!is_array($quote)) {
+            return null;
+        }
+
+        $percentChange = $quote['changePercentage']
+            ?? $quote['changesPercentage']
+            ?? null;
+
         return new StockQuoteDTO(
             currentPrice: isset($quote['price']) ? (float) $quote['price'] : null,
             change: isset($quote['change']) ? (float) $quote['change'] : null,
-            percentChange: isset($quote['changesPercentage']) ? (float) $quote['changesPercentage'] : null,
+            percentChange: $percentChange !== null ? (float) $percentChange : null,
             highPrice: isset($quote['dayHigh']) ? (float) $quote['dayHigh'] : null,
             lowPrice: isset($quote['dayLow']) ? (float) $quote['dayLow'] : null,
             openPrice: isset($quote['open']) ? (float) $quote['open'] : null,
@@ -90,31 +111,24 @@ class FmpProvider implements StockApiProviderInterface
         );
     }
 
-    /**
-     * Get candle data (OHLCV) for a stock symbol with custom parameters.
-     * 
-     * @param string $symbol The stock symbol (ticker), e.g., 'AAPL'.
-     * @param int $fromTimestamp Unix timestamp for start time.
-     * @param int $toTimestamp Unix timestamp for end time.
-     * @param string $resolution Resolution: '1', '5', '15', '30', '60', 'D', 'W', 'M'.
-     * @return StockCandleDTO|null DTO containing all candle data, or null on error.
-     */
     public function getCandleData(string $symbol, int $fromTimestamp, int $toTimestamp, string $resolution = 'D'): ?StockCandleDTO
     {
-        // Convertir timestamps a fechas
+        return $this->fetchCandleData($symbol, $fromTimestamp, $toTimestamp, $resolution)->candle;
+    }
+
+    public function fetchCandleData(string $symbol, int $fromTimestamp, int $toTimestamp, string $resolution = 'D'): ProviderCandleCallResult
+    {
         $fromDate = Carbon::createFromTimestamp($fromTimestamp)->format('Y-m-d');
         $toDate = Carbon::createFromTimestamp($toTimestamp)->format('Y-m-d');
 
-        // FMP usa el endpoint 'historical-price-full' para datos históricos diarios
-        // Para otros timeframes, usaría 'historical-chart/1min', 'historical-chart/5min', etc.
         if ($resolution === 'D') {
-            $endpoint = 'historical-price-full/' . strtoupper($symbol);
+            $endpoint = 'historical-price-eod/full';
             $params = [
+                'symbol' => strtoupper($symbol),
                 'from' => $fromDate,
                 'to' => $toDate,
             ];
         } else {
-            // Para otros timeframes, FMP usa diferentes endpoints
             $timeframeMap = [
                 '1' => '1min',
                 '5' => '5min',
@@ -122,45 +136,75 @@ class FmpProvider implements StockApiProviderInterface
                 '30' => '30min',
                 '60' => '1hour',
             ];
-            
-            $timeframe = $timeframeMap[$resolution] ?? '1day';
-            $endpoint = 'historical-chart/' . $timeframe . '/' . strtoupper($symbol);
-            $params = [];
+
+            $timeframe = $timeframeMap[$resolution] ?? '1min';
+            $endpoint = 'historical-chart/' . $timeframe;
+            $params = [
+                'symbol' => strtoupper($symbol),
+                'from' => $fromDate,
+                'to' => $toDate,
+            ];
         }
 
         try {
             $data = $this->apiRequest($endpoint, $params);
 
             if (!$data) {
-                return null;
+                return new ProviderCandleCallResult(
+                    success: false,
+                    candle: null,
+                    response: $data,
+                    httpStatus: 200,
+                    errorMessage: 'Empty response from FMP',
+                );
             }
 
-            // Convertir formato de FMP al formato del DTO
-            return $this->convertFmpCandleToDto($data, $resolution === 'D');
-        } catch (\Exception $e) {
-            error_log("Error en la petición FMP para {$symbol}. Error: " . $e->getMessage());
-            return null;
+            $candle = $this->convertFmpCandleToDto($data);
+            $hasClose = $candle !== null
+                && $candle->status === 'ok'
+                && !empty($candle->closePrices);
+
+            return new ProviderCandleCallResult(
+                success: $hasClose,
+                candle: $candle,
+                response: $data,
+                httpStatus: 200,
+                errorMessage: $hasClose ? null : 'No closing price in FMP candle response',
+            );
+        } catch (ProviderHttpException $e) {
+            return new ProviderCandleCallResult(
+                success: false,
+                candle: null,
+                response: $e->rawResponse,
+                httpStatus: $e->httpStatus,
+                errorMessage: $e->getMessage(),
+            );
+        } catch (\Throwable $e) {
+            return new ProviderCandleCallResult(
+                success: false,
+                candle: null,
+                response: null,
+                httpStatus: null,
+                errorMessage: $e->getMessage(),
+            );
         }
     }
 
     /**
-     * Convert FMP candle data format to StockCandleDTO.
+     * Stable EOD/intraday endpoints return a flat list of candles.
      *
-     * @param array $data
-     * @param bool $isDaily
-     * @return StockCandleDTO|null
+     * @param array<int|string, mixed> $data
      */
-    private function convertFmpCandleToDto(array $data, bool $isDaily): ?StockCandleDTO
+    private function convertFmpCandleToDto(array $data): ?StockCandleDTO
     {
-        if ($isDaily) {
-            // Para daily, FMP devuelve: { "historical": [...] }
-            $historical = $data['historical'] ?? [];
-        } else {
-            // Para intraday, FMP devuelve directamente un array
-            $historical = is_array($data) && isset($data[0]) ? $data : [];
+        $historical = $this->normalizeListResponse($data);
+
+        // Legacy shape fallback: { "historical": [...] }
+        if ($historical === [] && isset($data['historical']) && is_array($data['historical'])) {
+            $historical = $data['historical'];
         }
 
-        if (empty($historical)) {
+        if ($historical === []) {
             return new StockCandleDTO(
                 status: 'no_data',
                 closePrices: [],
@@ -180,19 +224,33 @@ class FmpProvider implements StockApiProviderInterface
         $volumes = [];
 
         foreach ($historical as $candle) {
-            $closePrices[] = (float) ($candle['close'] ?? 0);
+            if (!is_array($candle)) {
+                continue;
+            }
+
+            $closePrices[] = (float) ($candle['close'] ?? $candle['price'] ?? 0);
             $highPrices[] = (float) ($candle['high'] ?? 0);
             $lowPrices[] = (float) ($candle['low'] ?? 0);
             $openPrices[] = (float) ($candle['open'] ?? 0);
             $volumes[] = (int) ($candle['volume'] ?? 0);
-            
-            // FMP usa formato de fecha, convertir a timestamp
+
             if (isset($candle['date'])) {
-                $date = Carbon::parse($candle['date']);
-                $timestamps[] = $date->getTimestamp();
+                $timestamps[] = Carbon::parse($candle['date'])->getTimestamp();
             } elseif (isset($candle['timestamp'])) {
                 $timestamps[] = (int) $candle['timestamp'];
             }
+        }
+
+        if ($closePrices === []) {
+            return new StockCandleDTO(
+                status: 'no_data',
+                closePrices: [],
+                highPrices: [],
+                lowPrices: [],
+                openPrices: [],
+                timestamps: [],
+                volumes: [],
+            );
         }
 
         return new StockCandleDTO(
@@ -207,65 +265,97 @@ class FmpProvider implements StockApiProviderInterface
     }
 
     /**
-     * Make a request to FMP API.
-     *
-     * @param string $endpoint
-     * @param array $params
-     * @return array|null
-     * @throws \Exception
+     * @param array<int|string, mixed> $data
+     * @return list<array<string, mixed>>
+     */
+    private function normalizeListResponse(array $data): array
+    {
+        if ($data === []) {
+            return [];
+        }
+
+        // Associative object (single record) vs list of records
+        if (array_is_list($data)) {
+            /** @var list<array<string, mixed>> $data */
+            return array_values(array_filter($data, 'is_array'));
+        }
+
+        if (isset($data[0]) && is_array($data[0])) {
+            /** @var list<array<string, mixed>> */
+            return array_values(array_filter($data, 'is_array'));
+        }
+
+        return [];
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     * @return array<int|string, mixed>|null
      */
     private function apiRequest(string $endpoint, array $params = []): ?array
     {
-        // Añadir la clave de API automáticamente
         $params['apikey'] = $this->apiKey;
-        
-        $url = $this->baseUrl . $endpoint . '?' . http_build_query($params);
+
+        $url = $this->baseUrl . ltrim($endpoint, '/') . '?' . http_build_query($params);
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        
+
         $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
         Log::info('curl request to FMP: ' . $url);
         Log::info('response: ' . $response);
         Log::info('http code: ' . $httpCode);
 
+        $decoded = is_string($response) ? json_decode($response, true) : null;
+
         if ($response === false) {
-            throw new \Exception("Error en la petición a FMP: No se recibió respuesta del servidor");
+            throw new ProviderHttpException(
+                'Error en la petición a FMP: No se recibió respuesta del servidor',
+                $httpCode ?: null,
+                null,
+            );
         }
 
         if ($httpCode !== 200) {
-            // Intentar decodificar el mensaje de error de la respuesta
             $errorMessage = "Código HTTP: {$httpCode}";
-            $decodedResponse = json_decode($response, true);
-            
-            if (is_array($decodedResponse)) {
-                if (isset($decodedResponse['Error'])) {
-                    $errorMessage .= " - Error: " . $decodedResponse['Error'];
-                } elseif (isset($decodedResponse['error'])) {
-                    $errorMessage .= " - Error: " . $decodedResponse['error'];
-                } elseif (isset($decodedResponse['message'])) {
-                    $errorMessage .= " - Mensaje: " . $decodedResponse['message'];
+
+            if (is_array($decoded)) {
+                if (isset($decoded['Error Message'])) {
+                    $errorMessage .= ' - Error: ' . $decoded['Error Message'];
+                } elseif (isset($decoded['Error'])) {
+                    $errorMessage .= ' - Error: ' . $decoded['Error'];
+                } elseif (isset($decoded['error'])) {
+                    $errorMessage .= ' - Error: ' . $decoded['error'];
+                } elseif (isset($decoded['message'])) {
+                    $errorMessage .= ' - Mensaje: ' . $decoded['message'];
                 }
             } else {
-                // Si no es JSON, usar el texto de la respuesta directamente
-                $errorMessage .= " - Respuesta: " . substr($response, 0, 500);
+                $errorMessage .= ' - Respuesta: ' . substr((string) $response, 0, 500);
             }
-            
-            throw new \Exception("Error en la petición a FMP. {$errorMessage}");
+
+            throw new ProviderHttpException(
+                "Error en la petición a FMP. {$errorMessage}",
+                $httpCode,
+                is_array($decoded) ? $decoded : (string) $response,
+            );
         }
 
-        $data = json_decode($response, true);
-        
-        // FMP a veces devuelve un objeto de error incluso con HTTP 200
-        if (isset($data['Error']) || isset($data['error'])) {
-            throw new \Exception("Error devuelto por FMP: " . ($data['Error'] ?? $data['error']));
+        if (is_array($decoded) && (
+            isset($decoded['Error'])
+            || isset($decoded['error'])
+            || isset($decoded['Error Message'])
+        )) {
+            throw new ProviderHttpException(
+                'Error devuelto por FMP: ' . ($decoded['Error Message'] ?? $decoded['Error'] ?? $decoded['error']),
+                $httpCode,
+                $decoded,
+            );
         }
-        
-        return $data;
+
+        return is_array($decoded) ? $decoded : null;
     }
 }
-

@@ -10,56 +10,118 @@
       <span>{{ error }}</span>
     </div>
 
-    <div v-else class="space-y-6">
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">{{ $t('dashboard.uploadDegiroData.title') }}</h2>
-          <p class="text-base-content/70 mb-4">{{ $t('dashboard.uploadDegiroData.description') }}</p>
-          <RouterLink :to="{ name: 'upload-degiro-transactions' }" class="btn btn-primary">
-            {{ $t('dashboard.uploadDegiroData.button') }}
-          </RouterLink>
-        </div>
-      </div>
-
-      <div v-if="transactionCount !== null && transactionCount > 0" class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">{{ $t('dashboard.degiroTransactions.title') }}</h2>
-          <p class="text-lg mb-4">
-            {{ $t('dashboard.degiroTransactions.count', { count: formatInteger(transactionCount) }) }}
+    <div v-else class="space-y-8">
+      <!-- Primary: Stats -->
+      <div
+        v-if="transactionCount !== null && transactionCount > 0"
+        class="card bg-primary text-primary-content shadow-2xl"
+      >
+        <div class="card-body gap-4 py-10 px-8 md:px-10">
+          <h2 class="text-3xl md:text-4xl font-bold leading-tight">
+            {{ $t('dashboard.portfolioStats.title') }}
+          </h2>
+          <p class="text-lg md:text-xl opacity-90 max-w-2xl">
+            {{ $t('dashboard.portfolioStats.description') }}
           </p>
-          <RouterLink :to="{ name: 'degiro-transactions-list' }" class="btn btn-success">
-            {{ $t('dashboard.degiroTransactions.viewList') }}
-          </RouterLink>
+          <div class="card-actions mt-2">
+            <RouterLink
+              :to="{ name: 'statistics' }"
+              class="btn btn-lg bg-base-100 text-base-content border-0 hover:bg-base-200"
+            >
+              {{ $t('dashboard.portfolioStats.button') }}
+            </RouterLink>
+          </div>
         </div>
       </div>
 
-      <div v-if="transactionCount !== null && transactionCount > 0" class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">{{ $t('dashboard.portfolioStats.title') }}</h2>
-          <p class="text-base-content/70 mb-4">{{ $t('dashboard.portfolioStats.description') }}</p>
-          <RouterLink :to="{ name: 'statistics' }" class="btn btn-primary">
-            {{ $t('dashboard.portfolioStats.button') }}
-          </RouterLink>
+      <div
+        v-else
+        class="card bg-base-200/70 shadow"
+      >
+        <div class="card-body py-6">
+          <h2 class="text-xl font-semibold text-base-content/80">
+            {{ $t('dashboard.portfolioStats.title') }}
+          </h2>
+          <p class="text-sm text-base-content/60">
+            {{ $t('dashboard.uploadDegiroData.description') }}
+          </p>
         </div>
       </div>
 
-      <div v-if="transactionCount !== null && transactionCount > 0" class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">{{ $t('dashboard.taxReturn.title') }}</h2>
-          <p class="text-base-content/70 mb-4">{{ $t('dashboard.taxReturn.description') }}</p>
-          <RouterLink :to="{ name: 'tax-return-years' }" class="btn btn-primary">
-            {{ $t('dashboard.taxReturn.button') }}
-          </RouterLink>
+      <!-- Secondary actions -->
+      <div class="grid gap-4 md:grid-cols-2">
+        <div class="card bg-base-200/50 shadow-sm border border-base-300/60">
+          <div class="card-body py-5 gap-2">
+            <h2 class="text-base font-semibold text-base-content/80">
+              {{ $t('dashboard.uploadDegiroData.title') }}
+            </h2>
+            <p class="text-sm text-base-content/55 mb-2">
+              {{ $t('dashboard.uploadDegiroData.description') }}
+            </p>
+            <RouterLink
+              :to="{ name: 'upload-degiro-transactions' }"
+              class="btn btn-sm btn-outline btn-primary w-fit"
+            >
+              {{ $t('dashboard.uploadDegiroData.button') }}
+            </RouterLink>
+          </div>
         </div>
-      </div>
 
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title">{{ $t('dashboard.configuration.title') }}</h2>
-          <p class="text-base-content/70 mb-4">{{ $t('dashboard.configuration.description') }}</p>
-          <RouterLink :to="{ name: 'configuration' }" class="btn btn-outline">
-            {{ $t('dashboard.configuration.button') }}
-          </RouterLink>
+        <div
+          v-if="transactionCount !== null && transactionCount > 0"
+          class="card bg-base-200/50 shadow-sm border border-base-300/60"
+        >
+          <div class="card-body py-5 gap-2">
+            <h2 class="text-base font-semibold text-base-content/80">
+              {{ $t('dashboard.degiroTransactions.title') }}
+            </h2>
+            <p class="text-sm text-base-content/55 mb-2">
+              {{ $t('dashboard.degiroTransactions.count', { count: formatInteger(transactionCount) }) }}
+            </p>
+            <RouterLink
+              :to="{ name: 'degiro-transactions-list' }"
+              class="btn btn-sm btn-ghost w-fit"
+            >
+              {{ $t('dashboard.degiroTransactions.viewList') }}
+            </RouterLink>
+          </div>
+        </div>
+
+        <div
+          v-if="transactionCount !== null && transactionCount > 0"
+          class="card bg-base-200/50 shadow-sm border border-base-300/60"
+        >
+          <div class="card-body py-5 gap-2">
+            <h2 class="text-base font-semibold text-base-content/80">
+              {{ $t('dashboard.taxReturn.title') }}
+            </h2>
+            <p class="text-sm text-base-content/55 mb-2">
+              {{ $t('dashboard.taxReturn.description') }}
+            </p>
+            <RouterLink
+              :to="{ name: 'tax-return-years' }"
+              class="btn btn-sm btn-ghost w-fit"
+            >
+              {{ $t('dashboard.taxReturn.button') }}
+            </RouterLink>
+          </div>
+        </div>
+
+        <div class="card bg-base-200/50 shadow-sm border border-base-300/60">
+          <div class="card-body py-5 gap-2">
+            <h2 class="text-base font-semibold text-base-content/80">
+              {{ $t('dashboard.configuration.title') }}
+            </h2>
+            <p class="text-sm text-base-content/55 mb-2">
+              {{ $t('dashboard.configuration.description') }}
+            </p>
+            <RouterLink
+              :to="{ name: 'configuration' }"
+              class="btn btn-sm btn-ghost w-fit"
+            >
+              {{ $t('dashboard.configuration.button') }}
+            </RouterLink>
+          </div>
         </div>
       </div>
     </div>
@@ -90,4 +152,3 @@ onMounted(async () => {
   }
 })
 </script>
-
