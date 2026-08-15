@@ -9,10 +9,12 @@ use App\DegiroTransaction\Infrastructure\Controllers\TradesSummaryController;
 use App\DegiroTransaction\Infrastructure\Controllers\UploadDegiroTransactionController;
 use App\Dummy\Controllers\DummyController;
 use App\Isin\Infrastructure\Controllers\StockCandleController;
+use App\Portfolio\Infrastructure\Controllers\PortfolioEvolutionController;
 use App\TaxReturn\Infrastructure\Controllers\TaxReturnYearAuditController;
 use App\TaxReturn\Infrastructure\Controllers\TaxReturnYearDetailController;
 use App\TaxReturn\Infrastructure\Controllers\TaxReturnYearsController;
 use App\User\Controllers\UserController;
+use App\User\Controllers\UserLeverageController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -38,6 +40,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Account routes
     Route::get('/account', [UserController::class, 'account']);
     Route::get('/degiro-transactions/count', [UserController::class, 'degiroTransactionsCount']);
+    Route::get('/leverage', [UserLeverageController::class, 'show']);
+    Route::post('/leverage', [UserLeverageController::class, 'store']);
 
     // Degiro Transaction routes
     Route::post('/upload-degiro-transactions', [UploadDegiroTransactionController::class, 'upload']);
@@ -46,6 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Portfolio Statistics routes
     Route::get('/portfolio-stats', [PortfolioStatsController::class, 'index']);
+    Route::get('/portfolio-evolution', [PortfolioEvolutionController::class, 'index']);
 
     // Trades routes
     Route::get('/trades', [TradesController::class, 'index']);

@@ -1,10 +1,6 @@
 <template>
   <div class="container mx-auto p-8">
-    <h1 class="text-4xl font-bold mb-6">{{ $t('taxReturnYears.title') }}</h1>
-
-    <RouterLink :to="{ name: 'dashboard' }" class="btn btn-ghost btn-sm mb-6">
-      {{ $t('taxReturnYears.backDashboard') }}
-    </RouterLink>
+    <h1 class="text-4xl font-bold mb-8">{{ $t('taxReturnYears.title') }}</h1>
 
     <div v-if="isLoading" class="flex justify-center">
       <span class="loading loading-spinner loading-lg"></span>
@@ -78,6 +74,12 @@
           </p>
         </div>
       </div>
+    </div>
+
+    <div class="mt-6">
+      <RouterLink :to="{ name: 'dashboard' }" class="btn btn-ghost">
+        {{ $t('common.backToDashboard') }}
+      </RouterLink>
     </div>
   </div>
 </template>

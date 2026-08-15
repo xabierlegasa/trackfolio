@@ -2,7 +2,7 @@
   <div class="container mx-auto p-8">
     <h1 class="text-4xl font-bold mb-6">{{ $t('statistics.title') }}</h1>
 
-    <div role="tablist" class="tabs tabs-boxed mb-6 w-full max-w-xl">
+    <div role="tablist" class="tabs tabs-boxed mb-6 w-full max-w-2xl">
       <button
         type="button"
         role="tab"
@@ -12,6 +12,16 @@
         @click="setTab('portfolio')"
       >
         {{ $t('statistics.tabs.portfolio') }}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="tab flex-1"
+        :class="{ 'tab-active': activeTab === 'evolution' }"
+        :aria-selected="activeTab === 'evolution'"
+        @click="setTab('evolution')"
+      >
+        {{ $t('statistics.tabs.evolution') }}
       </button>
       <button
         type="button"
@@ -39,6 +49,17 @@
       <PortfolioStats embedded />
     </div>
 
+    <div v-if="visitedEvolution" v-show="activeTab === 'evolution'">
+      <Suspense>
+        <EvolutionPanel embedded />
+        <template #fallback>
+          <div class="flex justify-center py-12">
+            <span class="loading loading-spinner loading-lg"></span>
+          </div>
+        </template>
+      </Suspense>
+    </div>
+
     <div v-if="visitedTrades" v-show="activeTab === 'trades'">
       <Suspense>
         <TradesPanel embedded />
@@ -60,20 +81,27 @@
         </template>
       </Suspense>
     </div>
+
+    <div class="mt-6">
+      <RouterLink :to="{ name: 'dashboard' }" class="btn btn-ghost">
+        {{ $t('common.backToDashboard') }}
+      </RouterLink>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import PortfolioStats from './PortfolioStats.vue'
 
+const EvolutionPanel = defineAsyncComponent(() => import('./PortfolioEvolution.vue'))
 const TradesPanel = defineAsyncComponent(() => import('./Trades.vue'))
 const TradeSummaryPanel = defineAsyncComponent(() => import('./TradeSummary.vue'))
 
-type StatsTab = 'portfolio' | 'trades' | 'trade-summary'
+type StatsTab = 'portfolio' | 'evolution' | 'trades' | 'trade-summary'
 
-const VALID_TABS: StatsTab[] = ['portfolio', 'trades', 'trade-summary']
+const VALID_TABS: StatsTab[] = ['portfolio', 'evolution', 'trades', 'trade-summary']
 
 const route = useRoute()
 const router = useRouter()
@@ -87,12 +115,16 @@ const parseTab = (value: unknown): StatsTab => {
 
 const activeTab = computed(() => parseTab(route.query.tab))
 
+const visitedEvolution = ref(false)
 const visitedTrades = ref(false)
 const visitedTradeSummary = ref(false)
 
 watch(
   activeTab,
   (tab) => {
+    if (tab === 'evolution') {
+      visitedEvolution.value = true
+    }
     if (tab === 'trades') {
       visitedTrades.value = true
     }

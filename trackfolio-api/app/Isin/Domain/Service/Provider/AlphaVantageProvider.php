@@ -155,7 +155,7 @@ class AlphaVantageProvider implements StockApiProviderInterface
 
         // Persist the full compact series (all days returned); callers filter by requested range.
         foreach ($timeSeries as $date => $candle) {
-            $dateCarbon = Carbon::parse($date);
+            $dateCarbon = Carbon::parse($date, 'UTC')->startOfDay();
             $timestamp = $dateCarbon->getTimestamp();
 
             $closePrices[] = (float) ($candle['4. close'] ?? 0);

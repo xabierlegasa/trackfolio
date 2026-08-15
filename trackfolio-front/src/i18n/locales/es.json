@@ -5,7 +5,8 @@
   "common": {
     "language": "Idioma",
     "login": "Iniciar sesión",
-    "register": "Registrarse"
+    "register": "Registrarse",
+    "backToDashboard": "Volver al panel"
   },
   "taxReturnYears": {
     "title": "Declaración de la Renta",
@@ -130,6 +131,17 @@
   "configuration": {
     "title": "Configuración",
     "backToDashboard": "Volver al panel",
+    "leverage": {
+      "title": "Leverage",
+      "description": "Capital prestado / debit balance en Degiro. Se resta del total de la cartera en EUR. Cada guardado queda en el historial.",
+      "amountLabel": "Leverage actual (EUR)",
+      "hint": "Introduce euros enteros. 0 si no tienes leverage.",
+      "save": "Guardar leverage",
+      "saved": "Leverage guardado.",
+      "historyTitle": "Historial",
+      "historyDate": "Fecha",
+      "historyAmount": "Importe"
+    },
     "dangerZone": {
       "title": "Zona de peligro",
       "description": "Elimina de forma permanente todas las transacciones de Degiro que hayas importado. No se puede deshacer.",
@@ -240,6 +252,7 @@
     "title": "Stats",
     "tabs": {
       "portfolio": "Portfolio",
+      "evolution": "Evolution",
       "trades": "Trades",
       "tradeSummary": "Resumen"
     },
@@ -262,6 +275,40 @@
   "portfolioStats": {
     "title": "Portfolio",
     "noHoldings": "No se encontraron posiciones. Tu cartera está vacía.",
+    "summary": {
+      "balance": "Balance",
+      "portfolio": "Portfolio",
+      "leverage": "Leverage",
+      "day": "Day",
+      "totalPl": "Total P/L"
+    },
+    "summaryTooltips": {
+      "close": "Cerrar",
+      "balance": {
+        "title": "Balance",
+        "description": "Es el valor neto de tu cuenta en euros a la fecha de cotización mostrada arriba.\n\nSe calcula así:\nPortfolio − Leverage\n\nEs decir: el valor de mercado de todas las posiciones abiertas (convertido a EUR con el tipo de cambio USD→EUR del día), menos el leverage/debit balance que hayas configurado en Configuración.\n\nSi no tienes leverage (0 €), Balance coincide con Portfolio.\n\nNo incluye efectivo en cuenta ni P/L de trades ya cerrados: solo el valor neto de la cartera abierta tras restar el capital prestado."
+      },
+      "portfolio": {
+        "title": "Portfolio",
+        "description": "Es el valor bruto de mercado de todas tus posiciones abiertas, en euros.\n\nCálculo por posición:\nprecio de cierre D‑1 × cantidad de títulos\n\nLuego se convierte a EUR con el tipo de cambio USD→EUR guardado para hoy (open.er-api) y se suman todas las posiciones.\n\nSolo entran ISINs con cantidad neta distinta de cero (posiciones abiertas). No se resta el leverage; para eso mira Balance.\n\nLa fecha de los precios es la del bloque «Datos a fecha de» (último cierre de mercado disponible respecto a ayer UTC, con lookback si el mercado estaba cerrado)."
+      },
+      "leverage": {
+        "title": "Leverage",
+        "description": "Es el capital prestado / debit balance que has indicado tú en Configuración, en euros.\n\nNo se calcula automáticamente desde Degiro: cada vez que guardas un importe se crea una fila nueva en el historial (user_leverages) con fecha, y aquí usamos el valor más reciente.\n\nSe muestra en gris porque es un dato de contexto: su efecto principal está en Balance (Portfolio − Leverage).\n\nSi nunca has configurado leverage, vale 0 €."
+      },
+      "day": {
+        "title": "Day",
+        "description": "Es la variación del día (D‑1) de toda la cartera abierta, en euros.\n\nPor cada posición:\n1) Se toma el precio de cierre de la fecha mostrada y el cierre del día hábil anterior (misma fuente/proveedor).\n2) Cambio por título = cierre actual − cierre anterior.\n3) Cambio de la posición = cambio por título × cantidad.\n4) Se convierte a EUR con el tipo USD→EUR de hoy y se suma para todas las posiciones.\n\nVerde = la cartera abierta ha ganado valor ese día; rojo = ha perdido. No es P/L realizado ni histórico: solo el movimiento de precios entre dos cierres consecutivos disponibles."
+      },
+      "totalPl": {
+        "title": "Total P/L",
+        "description": "Es la ganancia o pérdida total acumulada en euros, mezclando lo abierto y lo ya cerrado.\n\nTotal P/L = P/L no realizado (posiciones abiertas) + P/L realizado (trades totalmente cerrados)\n\nP/L no realizado (por ISIN abierto):\nvalor de mercado actual − coste medio de la posición abierta\n(el coste se calcula recorriendo compras/ventas con coste medio; luego se convierte a EUR).\n\nP/L realizado:\nsuma del resultado de los ISINs con cantidad neta = 0 (misma base que la pestaña Summary / trades summary), usando SUM(value) de Degiro en la moneda base; si viniera en USD se convierte a EUR.\n\nImportante: las ventas parciales de una posición que sigue abierta no aparecen como «realizado» en Summary; su efecto queda absorbido en el coste medio de lo que sigue abierto.\n\nVerde = beneficio neto acumulado; rojo = pérdida neta."
+      }
+    },
+    "dataAsOfLabel": "Datos a fecha de",
+    "fxRateLabel": "EUR vs USD",
+    "fxRateValue": "1 USD = {rate} EUR",
+    "fxRateAsOf": "a fecha de {date}",
     "table": {
       "product": "Producto",
       "isin": "ISIN",
@@ -286,6 +333,19 @@
     "pagination": {
       "page": "Página {current} de {total}",
       "itemsPerPage": "Elementos por página"
+    }
+  },
+  "portfolioEvolution": {
+    "title": "Evolución del Balance",
+    "subtitle": "Últimos {months} meses a partir de fotos diarias guardadas (sin recalcular).",
+    "empty": "Todavía no hay fotos diarias. Abre Stats/Portfolio al menos una vez para guardar el snapshot de hoy.",
+    "table": {
+      "date": "Fecha",
+      "balance": "Balance",
+      "portfolio": "Portfolio",
+      "leverage": "Leverage",
+      "day": "Day",
+      "totalPl": "Total P/L"
     }
   },
   "trades": {

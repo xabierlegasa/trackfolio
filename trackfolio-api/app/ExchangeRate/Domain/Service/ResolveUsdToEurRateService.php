@@ -13,8 +13,10 @@ class ResolveUsdToEurRateService
 
     /**
      * USD → EUR rate for today. Uses DB cache; fetches open.er-api when missing.
+     *
+     * @return array{rate: float, rate_date: string}|null
      */
-    public function forToday(): ?float
+    public function resolveToday(): ?array
     {
         $today = Carbon::today()->toDateString();
 
@@ -25,13 +27,29 @@ class ResolveUsdToEurRateService
             ->first();
 
         if ($cached !== null && (float) $cached->rate > 0) {
-            return (float) $cached->rate;
+            return [
+                'rate' => (float) $cached->rate,
+                'rate_date' => $this->asOfDateFromRow($cached),
+            ];
         }
 
         return $this->fetchAndPersist($today);
     }
 
-    private function fetchAndPersist(string $rateDate): ?float
+    /**
+     * USD → EUR rate for today. Uses DB cache; fetches open.er-api when missing.
+     */
+    public function forToday(): ?float
+    {
+        $resolved = $this->resolveToday();
+
+        return $resolved['rate'] ?? null;
+    }
+
+    /**
+     * @return array{rate: float, rate_date: string}|null
+     */
+    private function fetchAndPersist(string $rateDate): ?array
     {
         $payload = $this->fetchLatestUsdRates();
         if ($payload === null) {
@@ -65,7 +83,42 @@ class ResolveUsdToEurRateService
             ],
         );
 
-        return $rate;
+        return [
+            'rate' => $rate,
+            'rate_date' => $this->asOfDateFromPayload($payload, $rateDate),
+        ];
+    }
+
+    private function asOfDateFromRow(ExchangeRate $row): string
+    {
+        $fallback = $row->rate_date?->format('Y-m-d') ?? Carbon::today()->toDateString();
+        $payload = is_array($row->response) ? $row->response : [];
+
+        return $this->asOfDateFromPayload($payload, $fallback);
+    }
+
+    /**
+     * Prefer the provider's last-update date (when the FX actually comes from).
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function asOfDateFromPayload(array $payload, string $fallback): string
+    {
+        $unix = $payload['time_last_update_unix'] ?? null;
+        if (is_numeric($unix) && (int) $unix > 0) {
+            return Carbon::createFromTimestampUTC((int) $unix)->toDateString();
+        }
+
+        $utc = $payload['time_last_update_utc'] ?? null;
+        if (is_string($utc) && $utc !== '') {
+            try {
+                return Carbon::parse($utc)->utc()->toDateString();
+            } catch (\Throwable) {
+                // Fall through to the stored rate_date.
+            }
+        }
+
+        return $fallback;
     }
 
     /**

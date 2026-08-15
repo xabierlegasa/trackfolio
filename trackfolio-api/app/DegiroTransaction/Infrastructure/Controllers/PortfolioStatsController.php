@@ -8,13 +8,17 @@ use App\ExchangeRate\Domain\Service\ResolveUsdToEurRateService;
 use App\Isin\Domain\Entity\Isin;
 use App\Isin\Domain\Entity\IsinQuote;
 use App\Isin\Domain\Service\ResolveIsinClosingPriceService;
+use App\Isin\Domain\Service\ResolveLastUsMarketOpenDateService;
+use App\Portfolio\Domain\Service\PortfolioDailySnapshotService;
+use App\User\Domain\Service\ResolveUserLeverageService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class PortfolioStatsController
 {
-    private const CONCENTRATION_TOP_N = 7;
+    private const CONCENTRATION_TOP_N = 10;
 
     private const SORTABLE = [
         'symbols' => 'ticker_symbol',
@@ -31,7 +35,10 @@ class PortfolioStatsController
     public function __construct(
         private DegiroTransactionRepository $repository,
         private ResolveIsinClosingPriceService $resolveIsinClosingPriceService,
+        private ResolveLastUsMarketOpenDateService $resolveLastUsMarketOpenDateService,
         private ResolveUsdToEurRateService $resolveUsdToEurRateService,
+        private ResolveUserLeverageService $resolveUserLeverageService,
+        private PortfolioDailySnapshotService $portfolioDailySnapshotService,
     ) {}
 
     /**
@@ -54,7 +61,10 @@ class PortfolioStatsController
 
         $allHoldings = $this->repository->getAllPortfolioHoldings($user->id);
 
-        $usdToEur = $this->resolveUsdToEurRateService->forToday();
+        $usdToEurResolved = $this->resolveUsdToEurRateService->resolveToday();
+        $usdToEur = $usdToEurResolved !== null ? $usdToEurResolved['rate'] : null;
+        $usdToEurRateDate = $usdToEurResolved !== null ? $usdToEurResolved['rate_date'] : null;
+        $lastUsMarketOpenDate = $this->resolveLastUsMarketOpenDateService->resolve();
 
         $enriched = [];
         foreach ($allHoldings as $holding) {
@@ -64,12 +74,27 @@ class PortfolioStatsController
                 quantity: (float) $holding->quantity,
                 product: (string) $holding->product,
                 usdToEur: $usdToEur,
+                asOfDate: $lastUsMarketOpenDate,
             );
         }
 
         $totalMarketValue = 0;
+        $totalMarketValueEur = 0;
+        $totalDayChangeEur = 0;
+        $hasDayChange = false;
+        $totalGainLossEur = 0;
+        $hasTotalGainLoss = false;
         foreach ($enriched as $row) {
             $totalMarketValue += (int) ($row['market_value_min_unit'] ?? 0);
+            $totalMarketValueEur += (int) ($row['market_value_eur_min_unit'] ?? 0);
+            if (($row['day_change_eur_min_unit'] ?? null) !== null) {
+                $totalDayChangeEur += (int) $row['day_change_eur_min_unit'];
+                $hasDayChange = true;
+            }
+            if (($row['total_gain_loss_eur_min_unit'] ?? null) !== null) {
+                $totalGainLossEur += (int) $row['total_gain_loss_eur_min_unit'];
+                $hasTotalGainLoss = true;
+            }
         }
 
         foreach ($enriched as $i => $row) {
@@ -89,10 +114,39 @@ class PortfolioStatsController
 
         $pageItems = array_slice($enriched, ($page - 1) * $perPage, $perPage);
 
+        $leverageEurMinUnit = $this->resolveUserLeverageService->currentAmountEurMinUnit((int) $user->id);
+        $netMarketValueEur = $totalMarketValueEur > 0
+            ? $totalMarketValueEur - $leverageEurMinUnit
+            : null;
+
+        $realizedEurMinUnit = $this->realizedClosedTradesEurMinUnit(
+            userId: (int) $user->id,
+            usdToEur: $usdToEur,
+        );
+        $totalGainLossEur += $realizedEurMinUnit['amount'];
+        $hasTotalGainLoss = $hasTotalGainLoss || $realizedEurMinUnit['has_activity'];
+
+        $dayChangeForResponse = $hasDayChange ? $totalDayChangeEur : null;
+        $totalPlForResponse = $hasTotalGainLoss ? $totalGainLossEur : null;
+        $portfolioEurForSnapshot = $totalMarketValueEur;
+        $balanceEurForSnapshot = $netMarketValueEur ?? ($portfolioEurForSnapshot - $leverageEurMinUnit);
+
+        $snapshotDate = $lastUsMarketOpenDate
+            ?? $this->resolvePortfolioAsOfDate($enriched)
+            ?? Carbon::today(config('app.timezone', 'UTC'))->toDateString();
+
+        $this->portfolioDailySnapshotService->ensureForDate((int) $user->id, $snapshotDate, [
+            'balance_eur_min_unit' => (int) $balanceEurForSnapshot,
+            'portfolio_eur_min_unit' => (int) $portfolioEurForSnapshot,
+            'leverage_eur_min_unit' => $leverageEurMinUnit,
+            'day_change_eur_min_unit' => $dayChangeForResponse,
+            'total_gain_loss_eur_min_unit' => $totalPlForResponse,
+        ]);
+
         return response()->json([
             'data' => array_values($pageItems),
             'concentration' => $this->buildConcentrationFromEnriched($enriched),
-            'performance_temperature' => $this->buildPerformanceTemperatureFromEnriched($enriched),
+            'performance_temperature' => $this->buildPerformanceTemperatureFromEnriched($enriched, $lastUsMarketOpenDate),
             'current_page' => $page,
             'per_page' => $perPage,
             'total' => $total,
@@ -100,7 +154,39 @@ class PortfolioStatsController
             'sort_by' => $sortByParam,
             'sort_order' => $sortOrder,
             'usd_to_eur_rate' => $usdToEur,
+            'usd_to_eur_rate_date' => $usdToEurRateDate,
+            'last_us_market_open_date' => $lastUsMarketOpenDate,
+            'total_market_value_min_unit' => $totalMarketValue > 0 ? $totalMarketValue : null,
+            'total_market_value_eur_min_unit' => $totalMarketValueEur > 0 ? $totalMarketValueEur : null,
+            'leverage_eur_min_unit' => $leverageEurMinUnit,
+            'net_market_value_eur_min_unit' => $netMarketValueEur,
+            'day_change_eur_min_unit' => $dayChangeForResponse,
+            'total_gain_loss_eur_min_unit' => $totalPlForResponse,
         ]);
+    }
+
+    /**
+     * Realized P&amp;L from fully closed ISINs (same basis as trades summary), in EUR cents.
+     *
+     * @return array{amount: int, has_activity: bool}
+     */
+    private function realizedClosedTradesEurMinUnit(int $userId, ?float $usdToEur): array
+    {
+        $summary = $this->repository->getTradesSummary($userId);
+        $amount = (int) ($summary['difference'] ?? 0);
+        $currency = strtoupper((string) ($summary['currency'] ?? 'EUR'));
+        $hasActivity = $amount !== 0
+            || (int) ($summary['positive_sum'] ?? 0) !== 0
+            || (int) ($summary['negative_sum'] ?? 0) !== 0;
+
+        if ($currency === 'USD' && $usdToEur !== null && $usdToEur > 0) {
+            $amount = (int) round($amount * $usdToEur);
+        }
+
+        return [
+            'amount' => $amount,
+            'has_activity' => $hasActivity,
+        ];
     }
 
     /**
@@ -151,9 +237,10 @@ class PortfolioStatsController
         float $quantity,
         string $product,
         ?float $usdToEur,
+        ?string $asOfDate = null,
     ): array {
         $closing = $isin !== ''
-            ? $this->resolveIsinClosingPriceService->resolveForD1($isin)
+            ? $this->resolveIsinClosingPriceService->resolveForD1($isin, $asOfDate)
             : null;
 
         $tickerSymbol = $this->resolveTickerSymbol($isin, $closing);
@@ -171,6 +258,7 @@ class PortfolioStatsController
         $closingDate = $closing?->closing_date?->format('Y-m-d');
 
         $dayChangeMinUnit = null;
+        $dayChangeEurMinUnit = null;
         $dayChangePercent = null;
         if ($closing !== null && $closeCents !== null && $closingDate !== null) {
             $previous = $this->resolveIsinClosingPriceService->findPreviousQuote(
@@ -182,6 +270,9 @@ class PortfolioStatsController
                 $perShareChange = $closeCents - (int) $previous->close_price_min_unit;
                 $dayChangeMinUnit = (int) round($perShareChange * $quantity);
                 $dayChangePercent = ($perShareChange / (int) $previous->close_price_min_unit) * 100;
+                if ($usdToEur !== null && $usdToEur > 0) {
+                    $dayChangeEurMinUnit = (int) round($dayChangeMinUnit * $usdToEur);
+                }
             }
         }
 
@@ -217,6 +308,7 @@ class PortfolioStatsController
             'closing_price_currency' => $currency,
             'closing_date' => $closingDate,
             'day_change_min_unit' => $dayChangeMinUnit,
+            'day_change_eur_min_unit' => $dayChangeEurMinUnit,
             'day_change_percent' => $dayChangePercent,
             'total_gain_loss_min_unit' => $totalGainLossMinUnit,
             'total_gain_loss_eur_min_unit' => $totalGainLossEurMinUnit,
@@ -261,11 +353,12 @@ class PortfolioStatsController
 
     /**
      * Full-portfolio tiles for the performance temperature treemap.
+     * Day change is only included when the quote matches the displayed as-of date.
      *
      * @param list<array<string, mixed>> $enriched
      * @return list<array{isin: string, ticker_symbol: string, product: string, weight_percent: float, day_change_percent: float|null}>
      */
-    private function buildPerformanceTemperatureFromEnriched(array $enriched): array
+    private function buildPerformanceTemperatureFromEnriched(array $enriched, ?string $asOfDate): array
     {
         $rows = [];
         foreach ($enriched as $row) {
@@ -275,6 +368,10 @@ class PortfolioStatsController
             }
 
             $dayChangePercent = $row['day_change_percent'] ?? null;
+            $closingDate = $row['closing_date'] ?? null;
+            if ($asOfDate !== null && $closingDate !== $asOfDate) {
+                $dayChangePercent = null;
+            }
 
             $rows[] = [
                 'isin' => (string) $row['isin'],
@@ -298,5 +395,33 @@ class PortfolioStatsController
         }
 
         return $tickerSymbol !== null && $tickerSymbol !== '' ? (string) $tickerSymbol : null;
+    }
+
+    /**
+     * Same as-of date shown in the UI ("Data as of"): most common closing_date among holdings.
+     *
+     * @param list<array<string, mixed>> $enriched
+     */
+    private function resolvePortfolioAsOfDate(array $enriched): ?string
+    {
+        $counts = [];
+        foreach ($enriched as $row) {
+            $date = $row['closing_date'] ?? null;
+            if (!is_string($date) || $date === '') {
+                continue;
+            }
+            $counts[$date] = ($counts[$date] ?? 0) + 1;
+        }
+
+        if ($counts === []) {
+            return null;
+        }
+
+        arsort($counts);
+        $topCount = reset($counts);
+        $candidates = array_keys(array_filter($counts, fn (int $c) => $c === $topCount));
+        rsort($candidates);
+
+        return $candidates[0] ?? null;
     }
 }

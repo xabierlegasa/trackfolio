@@ -33,11 +33,13 @@ class ResolveIsinClosingPriceService
 
     /**
      * Resolve D-1 closing price for an ISIN (cache first, then providers with fallback).
-     * Uses yesterday UTC and walks back up to LOOKBACK_DAYS if needed.
+     * $asOfDate is the last completed US session (YYYY-MM-DD). Defaults to yesterday UTC.
      */
-    public function resolveForD1(string $isin): ?IsinQuote
+    public function resolveForD1(string $isin, ?string $asOfDate = null): ?IsinQuote
     {
-        $toDate = Carbon::yesterday('UTC')->startOfDay();
+        $toDate = $asOfDate !== null && $asOfDate !== ''
+            ? Carbon::parse($asOfDate, 'UTC')->startOfDay()
+            : Carbon::yesterday('UTC')->startOfDay();
         $fromDate = $toDate->copy()->subDays(self::LOOKBACK_DAYS);
 
         return $this->resolveForDateRange($isin, $fromDate, $toDate);
@@ -64,17 +66,9 @@ class ResolveIsinClosingPriceService
         $to = $toDate->copy()->setTimezone('UTC')->startOfDay();
 
         if (!$bypassCache) {
-            foreach (self::providerOrder() as $preferredProvider) {
-                $cached = IsinQuote::query()
-                    ->where('isin', $isin)
-                    ->where('provider', $preferredProvider)
-                    ->whereBetween('closing_date', [$from->toDateString(), $to->toDateString()])
-                    ->orderByDesc('closing_date')
-                    ->first();
-
-                if ($cached !== null) {
-                    return $cached;
-                }
+            $exact = $this->cachedQuoteOnDate($isin, $to->toDateString(), $provider);
+            if ($exact !== null) {
+                return $exact;
             }
         }
 
@@ -141,15 +135,73 @@ class ResolveIsinClosingPriceService
                 tickerRequestId: $tickerRequest->id,
             );
 
-            $inRange = IsinQuote::query()
+            $exact = IsinQuote::query()
                 ->where('isin', $isin)
                 ->where('provider', $providerName)
-                ->whereBetween('closing_date', [$from->toDateString(), $to->toDateString()])
+                ->whereDate('closing_date', $to->toDateString())
+                ->whereNotNull('close_price_min_unit')
+                ->first();
+
+            if ($exact !== null) {
+                return $exact;
+            }
+        }
+
+        if (!$bypassCache) {
+            return $this->cachedLatestInRange(
+                $isin,
+                $from->toDateString(),
+                $to->toDateString(),
+                $provider,
+            );
+        }
+
+        return null;
+    }
+
+    private function cachedQuoteOnDate(string $isin, string $closingDate, ?string $provider = null): ?IsinQuote
+    {
+        $providers = $provider !== null
+            ? [strtolower($provider)]
+            : self::providerOrder();
+
+        foreach ($providers as $preferredProvider) {
+            $cached = IsinQuote::query()
+                ->where('isin', $isin)
+                ->where('provider', $preferredProvider)
+                ->whereDate('closing_date', $closingDate)
+                ->whereNotNull('close_price_min_unit')
+                ->first();
+
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
+
+        return null;
+    }
+
+    private function cachedLatestInRange(
+        string $isin,
+        string $fromDate,
+        string $toDate,
+        ?string $provider = null,
+    ): ?IsinQuote {
+        $providers = $provider !== null
+            ? [strtolower($provider)]
+            : self::providerOrder();
+
+        foreach ($providers as $preferredProvider) {
+            $cached = IsinQuote::query()
+                ->where('isin', $isin)
+                ->where('provider', $preferredProvider)
+                ->whereBetween('closing_date', [$fromDate, $toDate])
+                ->whereNotNull('close_price_min_unit')
                 ->orderByDesc('closing_date')
                 ->first();
 
-            if ($inRange !== null) {
-                return $inRange;
+            if ($cached !== null) {
+                return $cached;
             }
         }
 

@@ -17,6 +17,127 @@
     </div>
 
     <div v-else class="space-y-6">
+      <div
+        v-if="closingDateLabel || fxRateLabel"
+        class="rounded-xl border border-base-300 bg-base-100 px-4 py-3 sm:px-5"
+      >
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+          <div v-if="closingDateLabel">
+            <p class="text-xs uppercase tracking-wide text-base-content/50 font-medium">
+              {{ $t('portfolioStats.dataAsOfLabel') }}
+            </p>
+            <p class="text-lg sm:text-xl font-semibold text-base-content mt-0.5 capitalize">
+              {{ closingDateFriendly }}
+            </p>
+          </div>
+          <div v-if="fxRateLabel">
+            <p class="text-xs uppercase tracking-wide text-base-content/50 font-medium sm:text-right">
+              {{ $t('portfolioStats.fxRateLabel') }}
+            </p>
+            <p class="text-lg sm:text-xl font-semibold text-base-content mt-0.5 tabular-nums sm:text-right">
+              {{ fxRateValue }}
+            </p>
+            <p v-if="fxRateDateFriendly" class="text-sm text-base-content/55 mt-0.5 capitalize sm:text-right">
+              {{ $t('portfolioStats.fxRateAsOf', { date: fxRateDateFriendly }) }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="portfolioEurMinUnit != null || netMarketValueEurMinUnit != null"
+        class="rounded-2xl bg-base-200/70 px-5 py-4 sm:px-6"
+      >
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div>
+            <p class="text-sm text-base-content/60 flex items-center gap-1">
+              <span>{{ $t('portfolioStats.summary.balance') }}</span>
+              <button
+                type="button"
+                class="btn btn-ghost btn-xs btn-circle text-base-content/50 hover:text-base-content"
+                :aria-label="$t('portfolioStats.summaryTooltips.balance.title')"
+                @click="showSummaryTooltip('balance')"
+              >
+                ?
+              </button>
+            </p>
+            <p class="text-2xl sm:text-3xl font-bold tabular-nums tracking-tight mt-1">
+              {{ formatEurAmount(netMarketValueEurMinUnit) }}
+            </p>
+          </div>
+          <div>
+            <p class="text-sm text-base-content/60 flex items-center gap-1">
+              <span>{{ $t('portfolioStats.summary.portfolio') }}</span>
+              <button
+                type="button"
+                class="btn btn-ghost btn-xs btn-circle text-base-content/50 hover:text-base-content"
+                :aria-label="$t('portfolioStats.summaryTooltips.portfolio.title')"
+                @click="showSummaryTooltip('portfolio')"
+              >
+                ?
+              </button>
+            </p>
+            <p class="text-2xl sm:text-3xl font-bold tabular-nums tracking-tight mt-1 text-base-content/45">
+              {{ formatEurAmount(portfolioEurMinUnit) }}
+            </p>
+          </div>
+          <div>
+            <p class="text-sm text-base-content/60 flex items-center gap-1">
+              <span>{{ $t('portfolioStats.summary.leverage') }}</span>
+              <button
+                type="button"
+                class="btn btn-ghost btn-xs btn-circle text-base-content/50 hover:text-base-content"
+                :aria-label="$t('portfolioStats.summaryTooltips.leverage.title')"
+                @click="showSummaryTooltip('leverage')"
+              >
+                ?
+              </button>
+            </p>
+            <p class="text-2xl sm:text-3xl font-bold tabular-nums tracking-tight mt-1 text-base-content/45">
+              {{ formatEurAmount(leverageEurMinUnit) }}
+            </p>
+          </div>
+          <div>
+            <p class="text-sm text-base-content/60 flex items-center gap-1">
+              <span>{{ $t('portfolioStats.summary.day') }}</span>
+              <button
+                type="button"
+                class="btn btn-ghost btn-xs btn-circle text-base-content/50 hover:text-base-content"
+                :aria-label="$t('portfolioStats.summaryTooltips.day.title')"
+                @click="showSummaryTooltip('day')"
+              >
+                ?
+              </button>
+            </p>
+            <p
+              class="text-2xl sm:text-3xl font-bold tabular-nums tracking-tight mt-1"
+              :class="signedAmountColorClass(dayChangeEurMinUnit)"
+            >
+              {{ formatSignedEurAmount(dayChangeEurMinUnit) }}
+            </p>
+          </div>
+          <div>
+            <p class="text-sm text-base-content/60 flex items-center gap-1">
+              <span>{{ $t('portfolioStats.summary.totalPl') }}</span>
+              <button
+                type="button"
+                class="btn btn-ghost btn-xs btn-circle text-base-content/50 hover:text-base-content"
+                :aria-label="$t('portfolioStats.summaryTooltips.totalPl.title')"
+                @click="showSummaryTooltip('totalPl')"
+              >
+                ?
+              </button>
+            </p>
+            <p
+              class="text-2xl sm:text-3xl font-bold tabular-nums tracking-tight mt-1"
+              :class="signedAmountColorClass(totalGainLossEurMinUnit)"
+            >
+              {{ formatSignedEurAmount(totalGainLossEurMinUnit) }}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div v-if="performanceTiles.length > 0" class="card bg-base-100 shadow-xl">
         <div class="card-body">
           <h2 class="text-xl font-bold text-base-content">
@@ -90,9 +211,9 @@
 
       <div class="card bg-base-100 shadow-xl">
         <div class="card-body">
-          <p v-if="closingDateLabel" class="text-sm text-base-content/60 mb-3">
-            {{ closingDateLabel }}
-          </p>
+          <h2 class="text-xl font-bold text-base-content mb-3">
+            {{ $t('portfolioStats.title') }}
+          </h2>
           <div class="overflow-x-auto">
             <table class="table table-sm w-full">
               <thead>
@@ -309,6 +430,21 @@
         </div>
       </div>
     </div>
+
+    <dialog ref="summaryTooltipModal" class="modal">
+      <div class="modal-box max-w-lg">
+        <h3 class="font-bold text-lg mb-3">{{ summaryTooltipTitle }}</h3>
+        <p class="whitespace-pre-line text-base-content/80 leading-relaxed">{{ summaryTooltipDescription }}</p>
+        <div class="modal-action">
+          <button type="button" class="btn" @click="closeSummaryTooltip">
+            {{ $t('portfolioStats.summaryTooltips.close') }}
+          </button>
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button type="button" @click="closeSummaryTooltip">close</button>
+      </form>
+    </dialog>
   </div>
 </template>
 
@@ -341,6 +477,22 @@ const MAX_PRODUCT_QUERY_LEN = 200
 
 const { t, locale } = useI18n()
 
+type SummaryTooltipKey = 'balance' | 'portfolio' | 'leverage' | 'day' | 'totalPl'
+
+const summaryTooltipModal = ref<HTMLDialogElement | null>(null)
+const summaryTooltipTitle = ref('')
+const summaryTooltipDescription = ref('')
+
+const showSummaryTooltip = (key: SummaryTooltipKey) => {
+  summaryTooltipTitle.value = t(`portfolioStats.summaryTooltips.${key}.title`)
+  summaryTooltipDescription.value = t(`portfolioStats.summaryTooltips.${key}.description`)
+  summaryTooltipModal.value?.showModal()
+}
+
+const closeSummaryTooltip = () => {
+  summaryTooltipModal.value?.close()
+}
+
 const transactionsLinkForProduct = (product: string) => {
   const q = product.trim().slice(0, MAX_PRODUCT_QUERY_LEN)
   return {
@@ -354,6 +506,14 @@ const error = ref<string | null>(null)
 const holdings = ref<PortfolioHolding[]>([])
 const concentration = ref<PortfolioConcentrationItem[]>([])
 const performanceTemperature = ref<PortfolioPerformanceTemperatureItem[]>([])
+const portfolioEurMinUnit = ref<number | null>(null)
+const netMarketValueEurMinUnit = ref<number | null>(null)
+const leverageEurMinUnit = ref(0)
+const dayChangeEurMinUnit = ref<number | null>(null)
+const totalGainLossEurMinUnit = ref<number | null>(null)
+const usdToEurRate = ref<number | null>(null)
+const usdToEurRateDate = ref<string | null>(null)
+const lastUsMarketOpenDate = ref<string | null>(null)
 const currentPage = ref(1)
 const lastPage = ref(1)
 const perPage = ref(20)
@@ -416,16 +576,38 @@ const formatFriendlyClosingDate = (isoDate: string): string => {
   }).format(date)
 }
 
-const closingDateLabel = computed(() => {
-  const closingDate = holdings.value.find((h) => h.closing_date)?.closing_date
-  if (!closingDate) {
+const closingDateIso = computed(() => {
+  return lastUsMarketOpenDate.value
+    ?? holdings.value.find((h) => h.closing_date)?.closing_date
+    ?? null
+})
+
+const closingDateFriendly = computed(() => {
+  if (!closingDateIso.value) {
     return null
   }
+  return formatFriendlyClosingDate(closingDateIso.value)
+})
 
-  return t('portfolioStats.table.closingPriceWithDate', {
-    date: formatFriendlyClosingDate(closingDate),
+const closingDateLabel = computed(() => closingDateFriendly.value != null)
+
+const fxRateDateFriendly = computed(() => {
+  if (!usdToEurRateDate.value) {
+    return null
+  }
+  return formatFriendlyClosingDate(usdToEurRateDate.value)
+})
+
+const fxRateValue = computed(() => {
+  if (usdToEurRate.value == null || usdToEurRate.value <= 0) {
+    return null
+  }
+  return t('portfolioStats.fxRateValue', {
+    rate: formatDecimal(usdToEurRate.value, 4, 6),
   })
 })
+
+const fxRateLabel = computed(() => fxRateValue.value != null)
 
 const formatClosingPrice = (holding: PortfolioHolding): string => {
   if (holding.closing_price_min_unit == null) {
@@ -454,6 +636,27 @@ const formatPositionTotalEur = (holding: PortfolioHolding): string => {
   }
 
   return formatPricePrefixFromCents(holding.market_value_eur_min_unit, 'EUR', 0)
+}
+
+const formatEurAmount = (cents: number | null): string => {
+  if (cents == null) {
+    return t('portfolioStats.table.priceUnavailable')
+  }
+  return formatPricePrefixFromCents(cents, 'EUR', 0)
+}
+
+const formatSignedEurAmount = (cents: number | null): string => {
+  if (cents == null) {
+    return t('portfolioStats.table.priceUnavailable')
+  }
+  return formatSignedCurrencyFromCents(cents, 'EUR', 0)
+}
+
+const signedAmountColorClass = (cents: number | null): string => {
+  if (cents == null || cents === 0) {
+    return 'text-base-content'
+  }
+  return cents > 0 ? 'text-success' : 'text-error'
 }
 
 const formatSignedMoney = (
@@ -560,6 +763,14 @@ const loadPage = async (page: number) => {
     holdings.value = response.data
     concentration.value = response.concentration ?? []
     performanceTemperature.value = response.performance_temperature ?? []
+    portfolioEurMinUnit.value = response.total_market_value_eur_min_unit ?? null
+    netMarketValueEurMinUnit.value = response.net_market_value_eur_min_unit ?? null
+    leverageEurMinUnit.value = response.leverage_eur_min_unit ?? 0
+    dayChangeEurMinUnit.value = response.day_change_eur_min_unit ?? null
+    totalGainLossEurMinUnit.value = response.total_gain_loss_eur_min_unit ?? null
+    usdToEurRate.value = response.usd_to_eur_rate ?? null
+    usdToEurRateDate.value = response.usd_to_eur_rate_date ?? null
+    lastUsMarketOpenDate.value = response.last_us_market_open_date ?? null
     currentPage.value = response.current_page
     lastPage.value = response.last_page
   } catch (err: any) {

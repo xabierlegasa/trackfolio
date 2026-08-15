@@ -143,6 +143,34 @@ class FinnhubProvider implements StockApiProviderInterface
     }
 
     /**
+     * @return array<string, mixed>|null
+     */
+    public function getMarketStatus(string $exchange = 'US'): ?array
+    {
+        try {
+            return $this->apiRequest('stock/market-status', ['exchange' => $exchange]);
+        } catch (\Throwable $e) {
+            Log::warning('Finnhub market-status failed: ' . $e->getMessage());
+
+            return null;
+        }
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getMarketHoliday(string $exchange = 'US'): ?array
+    {
+        try {
+            return $this->apiRequest('stock/market-holiday', ['exchange' => $exchange]);
+        } catch (\Throwable $e) {
+            Log::warning('Finnhub market-holiday failed: ' . $e->getMessage());
+
+            return null;
+        }
+    }
+
+    /**
      * @param array<string, mixed> $params
      * @return array<string, mixed>|null
      */

@@ -180,12 +180,18 @@
         <button type="button" @click="closeTooltip">close</button>
       </form>
     </dialog>
+
+    <div class="mt-6">
+      <RouterLink :to="{ name: 'dashboard' }" class="btn btn-ghost">
+        {{ $t('common.backToDashboard') }}
+      </RouterLink>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { authService, DegiroTransaction } from '../services/authService'
 import {

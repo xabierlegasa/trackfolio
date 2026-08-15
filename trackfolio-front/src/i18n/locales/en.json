@@ -5,7 +5,8 @@
   "common": {
     "language": "Language",
     "login": "Login",
-    "register": "Sign Up"
+    "register": "Sign Up",
+    "backToDashboard": "Back to dashboard"
   },
   "taxReturnYears": {
     "title": "Income tax return",
@@ -130,6 +131,17 @@
   "configuration": {
     "title": "Configuration",
     "backToDashboard": "Back to dashboard",
+    "leverage": {
+      "title": "Leverage",
+      "description": "Borrowed capital / Degiro debit balance. Subtracted from the portfolio total in EUR. Every save is kept in history.",
+      "amountLabel": "Current leverage (EUR)",
+      "hint": "Enter whole euros. Use 0 if you have no leverage.",
+      "save": "Save leverage",
+      "saved": "Leverage saved.",
+      "historyTitle": "History",
+      "historyDate": "Date",
+      "historyAmount": "Amount"
+    },
     "dangerZone": {
       "title": "Danger zone",
       "description": "Permanently remove every Degiro transaction you have imported. This cannot be undone.",
@@ -240,6 +252,7 @@
     "title": "Stats",
     "tabs": {
       "portfolio": "Portfolio",
+      "evolution": "Evolution",
       "trades": "Trades",
       "tradeSummary": "Summary"
     },
@@ -262,6 +275,40 @@
   "portfolioStats": {
     "title": "Portfolio",
     "noHoldings": "No holdings found. Your portfolio is empty.",
+    "summary": {
+      "balance": "Balance",
+      "portfolio": "Portfolio",
+      "leverage": "Leverage",
+      "day": "Day",
+      "totalPl": "Total P/L"
+    },
+    "summaryTooltips": {
+      "close": "Close",
+      "balance": {
+        "title": "Balance",
+        "description": "This is the net value of your account in euros as of the quote date shown above.\n\nIt is calculated as:\nPortfolio − Leverage\n\nIn other words: the market value of all open positions (converted to EUR with today’s USD→EUR rate), minus the leverage / debit balance you configured under Configuration.\n\nIf leverage is 0 €, Balance equals Portfolio.\n\nIt does not include cash in the account or P/L from already closed trades — only the net value of the open book after subtracting borrowed capital."
+      },
+      "portfolio": {
+        "title": "Portfolio",
+        "description": "This is the gross market value of all open positions, in euros.\n\nPer position:\nD‑1 closing price × quantity\n\nEach position is converted to EUR with today’s stored USD→EUR rate (open.er-api), then all positions are summed.\n\nOnly ISINs with non-zero net quantity (open holdings) are included. Leverage is not subtracted here — see Balance for that.\n\nPrices use the date in the «Data as of» block (latest available market close relative to yesterday UTC, with lookback when the market was closed)."
+      },
+      "leverage": {
+        "title": "Leverage",
+        "description": "This is the borrowed capital / debit balance you entered under Configuration, in euros.\n\nIt is not pulled automatically from Degiro: each time you save an amount, a new history row is stored (user_leverages) with a timestamp, and this figure uses the latest value.\n\nIt is shown in grey as contextual data; its main effect is on Balance (Portfolio − Leverage).\n\nIf you never set leverage, it is 0 €."
+      },
+      "day": {
+        "title": "Day",
+        "description": "This is the one-day (D‑1) change of the whole open portfolio, in euros.\n\nPer position:\n1) Take the closing price for the date shown and the previous trading day’s close (same provider).\n2) Per-share change = current close − previous close.\n3) Position change = per-share change × quantity.\n4) Convert to EUR with today’s USD→EUR rate and sum across all positions.\n\nGreen = open book gained value that day; red = it lost value. This is not realized or lifetime P/L — only the price move between two available consecutive closes."
+      },
+      "totalPl": {
+        "title": "Total P/L",
+        "description": "This is your total accumulated profit or loss in euros, combining open and closed activity.\n\nTotal P/L = unrealized P/L (open positions) + realized P/L (fully closed trades)\n\nUnrealized P/L (per open ISIN):\ncurrent market value − average cost of the remaining open lot\n(cost is walked from buys/sells with average-cost on sells, then converted to EUR).\n\nRealized P/L:\nsum of results for ISINs whose net quantity is 0 (same basis as the Summary / trades-summary tab), using Degiro’s SUM(value) in the base currency; if that currency is USD it is converted to EUR.\n\nNote: partial sells on a position that is still open are not counted as «realized» in Summary; their effect is absorbed into the average cost of what remains open.\n\nGreen = net accumulated profit; red = net accumulated loss."
+      }
+    },
+    "dataAsOfLabel": "Data as of",
+    "fxRateLabel": "EUR vs USD",
+    "fxRateValue": "1 USD = {rate} EUR",
+    "fxRateAsOf": "as of {date}",
     "table": {
       "product": "Product",
       "isin": "ISIN",
@@ -286,6 +333,19 @@
     "pagination": {
       "page": "Page {current} of {total}",
       "itemsPerPage": "Items per page"
+    }
+  },
+  "portfolioEvolution": {
+    "title": "Balance evolution",
+    "subtitle": "Last {months} months from stored daily snapshots (no recalculation).",
+    "empty": "No daily snapshots yet. Open Stats/Portfolio at least once to save today's snapshot.",
+    "table": {
+      "date": "Date",
+      "balance": "Balance",
+      "portfolio": "Portfolio",
+      "leverage": "Leverage",
+      "day": "Day",
+      "totalPl": "Total P/L"
     }
   },
   "trades": {

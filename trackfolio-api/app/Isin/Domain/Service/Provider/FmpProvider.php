@@ -235,7 +235,7 @@ class FmpProvider implements StockApiProviderInterface
             $volumes[] = (int) ($candle['volume'] ?? 0);
 
             if (isset($candle['date'])) {
-                $timestamps[] = Carbon::parse($candle['date'])->getTimestamp();
+                $timestamps[] = Carbon::parse($candle['date'], 'UTC')->startOfDay()->getTimestamp();
             } elseif (isset($candle['timestamp'])) {
                 $timestamps[] = (int) $candle['timestamp'];
             }
