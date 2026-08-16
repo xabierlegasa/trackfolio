@@ -1,0 +1,51 @@
+---
+# Prerequisites (laptop):
+#   ansible-galaxy role install ansistrano.deploy
+#   ansible-galaxy collection install community.docker
+#
+# Prerequisites (NAS):
+#   Docker + Compose, user xabi in docker group, SSH enabled
+#   mkdir -p /volume1/docker/trackfolio
+#   NAS must be able to clone ansistrano_git_repo
+#
+# Deploy:
+#   cd deployment && ansible-playbook -i inventory.ini deploy.yml
+
+- name: Deploy Trackfolio to Synology NAS using Ansistrano
+  hosts: nas
+  # Self-signed Git HTTPS on LAN (192.168.1.149)
+  environment:
+    GIT_SSL_NO_VERIFY: "true"
+  vars:
+    ansistrano_deploy_to: "/volume1/docker/trackfolio"
+    ansistrano_keep_releases: 3
+    ansistrano_deploy_via: "git"
+    ansistrano_git_repo: "https://github.com/xabierlegasa/trackfolio.git"
+    ansistrano_git_branch: "main"
+
+    ansistrano_shared_paths:
+      - "trackfolio-api/storage"
+
+    ansistrano_shared_files:
+      - "trackfolio-api/.env"
+
+    ansistrano_before_symlink_tasks_file: "{{ playbook_dir }}/tasks/before_symlink.yml"
+    ansistrano_after_symlink_tasks_file: "{{ playbook_dir }}/tasks/after_symlink.yml"
+
+    # Used by templates/.env.j2 (override via group_vars/nas.yml or -e)
+    trackfolio_app_key: "{{ vault_trackfolio_app_key | default('base64:CHANGE_ME_GENERATE_WITH_artisan_key_generate') }}"
+    trackfolio_db_database: trackfolio
+    trackfolio_db_username: trackfolio
+    trackfolio_db_password: "{{ vault_trackfolio_db_password | default('changeme') }}"
+    trackfolio_db_root_password: "{{ vault_trackfolio_db_root_password | default('changeme') }}"
+    trackfolio_rabbitmq_user: trackfolio
+    trackfolio_rabbitmq_password: "{{ vault_trackfolio_rabbitmq_password | default('changeme') }}"
+    trackfolio_app_url: "http://192.168.1.136:8080"
+    trackfolio_cors_origins: "http://192.168.1.136:3080"
+    trackfolio_eodhd_api_token: "{{ vault_trackfolio_eodhd_api_token | default('') }}"
+    trackfolio_finnhub_api_key: "{{ vault_trackfolio_finnhub_api_key | default('') }}"
+    trackfolio_fmp_api_key: "{{ vault_trackfolio_fmp_api_key | default('') }}"
+    trackfolio_alphavantage_api_key: "{{ vault_trackfolio_alphavantage_api_key | default('') }}"
+
+  roles:
+    - role: ansistrano.deploy

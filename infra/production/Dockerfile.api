@@ -1,0 +1,46 @@
+# Production API image. Build context: monorepo root.
+FROM php:8.4-fpm-alpine
+
+WORKDIR /var/www
+
+RUN apk add --no-cache \
+    git \
+    curl \
+    libpng-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    oniguruma-dev \
+    mysql-client \
+    supervisor \
+    linux-headers \
+    $PHPIZE_DEPS \
+    pcre-dev \
+    && docker-php-ext-install pdo_mysql pdo mbstring exif pcntl bcmath gd opcache sockets \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && apk del $PHPIZE_DEPS pcre-dev
+
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+COPY infra/production/php.ini /usr/local/etc/php/conf.d/custom.ini
+COPY infra/production/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
+COPY infra/production/supervisor/conf.d/ /etc/supervisor/conf.d/
+RUN mkdir -p /var/log/supervisor
+
+COPY infra/production/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Application code (storage is replaced at runtime by Ansistrano shared volume)
+COPY trackfolio-api/composer.json trackfolio-api/composer.lock ./
+RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --optimize-autoloader
+
+COPY trackfolio-api/ ./
+RUN composer dump-autoload --optimize --no-dev \
+    && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
+    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+
+EXPOSE 9000
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["php-fpm"]

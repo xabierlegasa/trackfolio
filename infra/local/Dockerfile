@@ -29,12 +29,13 @@ RUN apk add --no-cache pcre-dev $PHPIZE_DEPS \
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Supervisor config (used by queue_worker service)
-COPY infra/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
-COPY infra/supervisor/conf.d/ /etc/supervisor/conf.d/
+# Build context is the monorepo root
+COPY infra/local/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
+COPY infra/local/supervisor/conf.d/ /etc/supervisor/conf.d/
 RUN mkdir -p /var/log/supervisor
 
 # Copy entrypoint script
-COPY infra/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY infra/local/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Expose port 9000 and start php-fpm server

@@ -7,7 +7,7 @@ REST API built with Laravel 12 for Trackfolio. This is an API-only application w
 
 ### Start Docker
 ```bash
-cd infra
+cd ../infra/local
 docker compose up --build
 # api should be available here: http://localhost:8080/
 
@@ -18,7 +18,7 @@ docker compose up -d --build
 
 ### Run migrations
 ```bash
-cd infra
+cd ../infra/local
 docker compose exec app php artisan migrate
 ```
 
@@ -31,7 +31,7 @@ make clear-cache
 
 **Or manually:**
 ```bash
-cd infra
+cd ../infra/local
 docker compose exec app php artisan route:clear
 docker compose exec app php artisan config:clear
 docker compose exec app php artisan cache:clear
@@ -102,7 +102,7 @@ The `.env.example` file already contains Docker-compatible configuration:
 ### 2. Start with Docker
 
 ```bash
-cd infra
+cd ../infra/local
 docker-compose up -d --build
 ```
 
@@ -187,7 +187,7 @@ tail -f storage/logs/laravel.log
 After changing Docker/Supervisor config, rebuild:
 
 ```bash
-cd infra
+cd ../infra/local
 docker compose up -d --build
 ```
 
@@ -197,7 +197,7 @@ docker compose up -d --build
 
 #### Start containers:
 ```bash
-cd infra
+cd ../infra/local
 docker-compose up -d
 ```
 
@@ -263,7 +263,7 @@ docker-compose exec app php artisan view:clear
 
 1. **Check container status:**
    ```bash
-   cd infra
+   cd ../infra/local
    docker-compose ps
    ```
    All services should show "Up" status.
@@ -295,7 +295,7 @@ docker-compose exec app php artisan view:clear
 
 ```bash
 #!/bin/bash
-cd infra
+cd ../infra/local
 
 echo "Verifying Docker configuration..."
 
@@ -384,12 +384,6 @@ trackfolio-api/
 ├── bootstrap/           # Bootstrap files
 ├── config/             # Configuration files
 ├── database/           # Migrations and seeders
-├── infra/              # Docker configuration
-│   ├── docker-compose.yml
-│   ├── Dockerfile
-│   ├── nginx/
-│   ├── mysql/
-│   └── supervisor/     # queue_worker Supervisor configs
 ├── public/             # Public entry point
 ├── resources/          # Resources (empty - API only)
 ├── routes/            # Route definitions
@@ -421,7 +415,7 @@ docker-compose exec app chmod -R 775 /var/www/storage
 
 ### Port Conflicts
 
-If ports 8080, 3306, or 6379 are already in use, modify `infra/docker-compose.yml`:
+If ports 8080, 3306, or 6379 are already in use, modify `../infra/local/docker-compose.yml`:
 ```yaml
 ports:
   - "8081:80"  # Change 8080 to 8081

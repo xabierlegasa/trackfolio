@@ -1,0 +1,26 @@
+---
+- name: Ensure shared trackfolio-api directory exists
+  ansible.builtin.file:
+    path: "{{ ansistrano_deploy_to }}/shared/trackfolio-api"
+    state: directory
+    mode: "0755"
+
+- name: Create production .env in shared if missing
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/templates/.env.j2"
+    dest: "{{ ansistrano_deploy_to }}/shared/trackfolio-api/.env"
+    mode: "0640"
+    force: false
+
+- name: Ensure production compose .env exists for DB bootstrap
+  ansible.builtin.copy:
+    dest: "{{ ansistrano_release_path }}/infra/production/.env"
+    mode: "0640"
+    content: |
+      VITE_API_BASE_URL={{ trackfolio_app_url }}
+      DB_DATABASE={{ trackfolio_db_database }}
+      DB_USERNAME={{ trackfolio_db_username }}
+      DB_PASSWORD={{ trackfolio_db_password }}
+      DB_ROOT_PASSWORD={{ trackfolio_db_root_password }}
+      RABBITMQ_USER={{ trackfolio_rabbitmq_user }}
+      RABBITMQ_PASSWORD={{ trackfolio_rabbitmq_password }}

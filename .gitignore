@@ -1,0 +1,6 @@
+# Local / secrets
+.DS_Store
+cookies.txt
+
+# Ansible secrets (real values live only on the deploy machine)
+deployment/group_vars/nas.yml

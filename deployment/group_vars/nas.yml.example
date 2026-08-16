@@ -1,0 +1,15 @@
+# Copy to nas.yml and fill in real values (nas.yml is gitignored).
+#
+# cp group_vars/nas.yml.example group_vars/nas.yml
+
+vault_trackfolio_app_key: "base64:GENERATE_WITH_php_artisan_key_generate"
+
+vault_trackfolio_db_password: "changeme"
+vault_trackfolio_db_root_password: "changeme"
+
+vault_trackfolio_rabbitmq_password: "changeme"
+
+vault_trackfolio_eodhd_api_token: ""
+vault_trackfolio_finnhub_api_key: ""
+vault_trackfolio_fmp_api_key: ""
+vault_trackfolio_alphavantage_api_key: ""

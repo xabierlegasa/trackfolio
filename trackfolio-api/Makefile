@@ -1,5 +1,7 @@
 .PHONY: help clear-cache cc restart restart-app docker-up docker-down migrate migrate-refresh populate-isins
 
+INFRA_DIR := ../infra/local
+
 # Default target
 help:
 	@echo "Available commands:"
@@ -16,49 +18,48 @@ help:
 # Clear Laravel caches and restart container
 clear-cache cc:
 	@echo "Clearing Laravel caches..."
-	cd infra && docker-compose exec app php artisan route:clear
-	cd infra && docker-compose exec app php artisan config:clear
-	cd infra && docker-compose exec app php artisan cache:clear
-	cd infra && docker-compose exec app composer dump-autoload
+	cd $(INFRA_DIR) && docker compose exec app php artisan route:clear
+	cd $(INFRA_DIR) && docker compose exec app php artisan config:clear
+	cd $(INFRA_DIR) && docker compose exec app php artisan cache:clear
+	cd $(INFRA_DIR) && docker compose exec app composer dump-autoload
 	@echo "Restarting application container..."
-	cd infra && docker-compose restart app
+	cd $(INFRA_DIR) && docker compose restart app
 	@echo "Done!"
 
 # Restart all Docker containers
 restart:
-	cd infra && docker-compose restart
+	cd $(INFRA_DIR) && docker compose restart
 
 # Restart only the application container
 restart-app:
-	cd infra && docker-compose restart app
+	cd $(INFRA_DIR) && docker compose restart app
 
 # Start Docker containers
 docker-up:
-	cd infra && docker-compose up -d
+	cd $(INFRA_DIR) && docker compose up -d
 
 # Stop Docker containers
 docker-down:
-	cd infra && docker-compose down
+	cd $(INFRA_DIR) && docker compose down
 
 # Run database migrations
 migrate:
-	cd infra && docker-compose exec app php artisan migrate
+	cd $(INFRA_DIR) && docker compose exec app php artisan migrate
 
 # Rollback last migration and migrate again
 migrate-refresh:
 	@echo "Rolling back last migration..."
-	cd infra && docker-compose exec app php artisan migrate:rollback --step=1
+	cd $(INFRA_DIR) && docker compose exec app php artisan migrate:rollback --step=1
 	@echo "Running migrations..."
-	cd infra && docker-compose exec app php artisan migrate
+	cd $(INFRA_DIR) && docker compose exec app php artisan migrate
 	@echo "Done!"
 
 # Populate isins table from degiro_transactions
 populate-isins:
 	@if [ -z "$(PROVIDER)" ]; then \
 		echo "Populating ISINs using default provider (finnhub)..."; \
-		cd infra && docker-compose exec app php artisan isins:populate; \
+		cd $(INFRA_DIR) && docker compose exec app php artisan isins:populate; \
 	else \
 		echo "Populating ISINs using provider: $(PROVIDER)..."; \
-		cd infra && docker-compose exec app php artisan isins:populate --provider=$(PROVIDER); \
+		cd $(INFRA_DIR) && docker compose exec app php artisan isins:populate --provider=$(PROVIDER); \
 	fi
-

@@ -1,0 +1,39 @@
+---
+- name: Build and bring up Docker Compose production stack
+  ansible.builtin.command:
+    cmd: docker compose up -d --build
+    chdir: "{{ ansistrano_deploy_to }}/current/infra/production"
+  register: compose_up
+  changed_when: "'Started' in compose_up.stdout or 'Created' in compose_up.stdout or 'Building' in compose_up.stderr or compose_up.rc == 0"
+
+- name: Wait for app container to be running
+  ansible.builtin.command:
+    cmd: docker compose ps --status running --services
+    chdir: "{{ ansistrano_deploy_to }}/current/infra/production"
+  register: running_services
+  until: "'app' in running_services.stdout"
+  retries: 30
+  delay: 5
+  changed_when: false
+
+- name: Run Laravel migrations
+  ansible.builtin.command:
+    cmd: docker compose exec -T app php artisan migrate --force
+    chdir: "{{ ansistrano_deploy_to }}/current/infra/production"
+
+- name: Ensure public storage symlink
+  ansible.builtin.command:
+    cmd: docker compose exec -T app php artisan storage:link
+    chdir: "{{ ansistrano_deploy_to }}/current/infra/production"
+  register: storage_link
+  changed_when: "'created' in storage_link.stdout | lower"
+  failed_when: false
+
+- name: Cache Laravel config and routes
+  ansible.builtin.command:
+    cmd: "docker compose exec -T app php artisan {{ item }}"
+    chdir: "{{ ansistrano_deploy_to }}/current/infra/production"
+  loop:
+    - config:cache
+    - route:cache
+  failed_when: false

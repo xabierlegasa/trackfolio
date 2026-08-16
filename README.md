@@ -1,18 +1,28 @@
 # Trackfolio
 
+## Local development
 
-
-cd trackfolio-api/infra
+```bash
+cd infra/local
 docker compose up
 # First time (or after Dockerfile/infra changes):
 # docker compose up --build
 
 # API: http://localhost:8080
 # RabbitMQ Management UI: http://localhost:15672 (trackfolio / secret)
+```
 
-http://localhost:15672/
-
-
+```bash
 cd trackfolio-front
 npm run dev
-http://localhost:3000/login
+# http://localhost:3000/login
+```
+
+## Production deploy (Synology via Ansistrano)
+
+See [`deployment/`](deployment/) — run from your laptop:
+
+```bash
+cd deployment
+ansible-playbook -i inventory.ini deploy.yml
+```
