@@ -7,6 +7,7 @@ use App\Isin\Domain\DTO\StockCandleDTO;
 use App\Isin\Domain\DTO\StockQuoteDTO;
 use App\Isin\Domain\DTO\StockSearchResponseDTO;
 use App\Isin\Domain\Exception\ProviderHttpException;
+use App\Isin\Domain\Service\ThrottleStockApiRequestService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
@@ -110,12 +111,21 @@ class AlphaVantageProvider implements StockApiProviderInterface
                 errorMessage: $hasClose ? null : 'No closing price in Alpha Vantage candle response',
             );
         } catch (ProviderHttpException $e) {
+            $haystack = strtolower($e->getMessage() . ' ' . json_encode($e->rawResponse));
+            $rateLimited = $e->httpStatus === 429
+                || str_contains($haystack, 'rate limit')
+                || str_contains($haystack, '25 requests per day')
+                || str_contains($haystack, 'premium plans')
+                || str_contains($haystack, 'call frequency')
+                || (is_array($e->rawResponse) && (isset($e->rawResponse['Information']) || isset($e->rawResponse['Note'])));
+
             return new ProviderCandleCallResult(
                 success: false,
                 candle: null,
                 response: $e->rawResponse,
                 httpStatus: $e->httpStatus,
                 errorMessage: $e->getMessage(),
+                rateLimited: $rateLimited,
             );
         } catch (\Throwable $e) {
             return new ProviderCandleCallResult(
@@ -198,7 +208,7 @@ class AlphaVantageProvider implements StockApiProviderInterface
         $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        Log::info('curl request to Alpha Vantage: ' . $url);
+        Log::info('curl request to Alpha Vantage: ' . ThrottleStockApiRequestService::redactSecretsInUrl($url));
         Log::info('response: ' . $response);
         Log::info('http code: ' . $httpCode);
 

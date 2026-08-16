@@ -1,29 +1,27 @@
 <?php
 
-namespace App\User\Domain\Entity;
+namespace App\Admin\Domain\Entity;
 
+use App\User\Domain\Entity\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class UserLeverage extends Model
+class AdminUser extends Model
 {
-    protected $table = 'user_leverages';
+    protected $table = 'admin_users';
 
     /**
      * @var array<int, string>
      */
     protected $fillable = [
         'user_id',
-        'amount_eur_min_unit',
-        'recorded_at',
     ];
 
     /**
      * @var array<string, string>
      */
     protected $casts = [
-        'amount_eur_min_unit' => 'integer',
-        'recorded_at' => 'datetime',
+        'user_id' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

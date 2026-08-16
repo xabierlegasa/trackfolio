@@ -7,6 +7,7 @@ use App\Isin\Domain\DTO\StockInfoDTO;
 use App\Isin\Domain\DTO\StockQuoteDTO;
 use App\Isin\Domain\DTO\StockSearchResponseDTO;
 use App\Isin\Domain\Service\Provider\AlphaVantageProvider;
+use App\Isin\Domain\Service\Provider\EodhdProvider;
 use App\Isin\Domain\Service\Provider\FinnhubProvider;
 use App\Isin\Domain\Service\Provider\FmpProvider;
 use App\Isin\Domain\Service\Provider\StockApiProviderInterface;
@@ -17,6 +18,7 @@ class StockApiService
     public const PROVIDER_FINNHUB = 'finnhub';
     public const PROVIDER_FMP = 'fmp';
     public const PROVIDER_ALPHAVANTAGE = 'alphavantage';
+    public const PROVIDER_EODHD = 'eodhd';
 
     /**
      * Create provider instance.
@@ -28,10 +30,18 @@ class StockApiService
     private function createProvider(string $providerName): StockApiProviderInterface
     {
         return match (strtolower($providerName)) {
+            self::PROVIDER_EODHD => new EodhdProvider(),
+            // Kept for manual/debug use; not in the active fallback chain.
             self::PROVIDER_FINNHUB => new FinnhubProvider(),
             self::PROVIDER_FMP => new FmpProvider(),
             self::PROVIDER_ALPHAVANTAGE => new AlphaVantageProvider(),
-            default => throw new \InvalidArgumentException("Unknown stock API provider: {$providerName}. Available: " . self::PROVIDER_FINNHUB . ", " . self::PROVIDER_FMP . ", " . self::PROVIDER_ALPHAVANTAGE),
+            default => throw new \InvalidArgumentException(
+                "Unknown stock API provider: {$providerName}. Available: "
+                . self::PROVIDER_EODHD . ', '
+                . self::PROVIDER_FINNHUB . ', '
+                . self::PROVIDER_FMP . ', '
+                . self::PROVIDER_ALPHAVANTAGE
+            ),
         };
     }
 
@@ -43,13 +53,13 @@ class StockApiService
      */
     private function getProvider(?string $provider = null): StockApiProviderInterface
     {
-        $providerName = $provider ?? self::PROVIDER_FINNHUB;
+        $providerName = $provider ?? self::PROVIDER_EODHD;
         return $this->createProvider($providerName);
     }
 
     /**
      * Search for a stock by ISIN.
-     * When $provider is null, tries finnhub → fmp (alphavantage has no ISIN search).
+     * When $provider is null, uses the active provider order (EODHD only).
      *
      * @param string $isin
      * @param string|null $provider Provider to use, or null for fallback chain.
@@ -62,7 +72,7 @@ class StockApiService
             return $this->getProvider($provider)->searchByIsin($isin);
         }
 
-        foreach ([self::PROVIDER_FINNHUB, self::PROVIDER_FMP] as $providerName) {
+        foreach (ResolveIsinClosingPriceService::providerOrder() as $providerName) {
             try {
                 $response = $this->createProvider($providerName)->searchByIsin($isin);
             } catch (\Throwable) {
@@ -81,7 +91,7 @@ class StockApiService
      * Get quote information for a symbol.
      *
      * @param string $symbol
-     * @param string|null $provider Provider to use (PROVIDER_FINNHUB, PROVIDER_FMP, or PROVIDER_ALPHAVANTAGE). Defaults to PROVIDER_FINNHUB.
+     * @param string|null $provider Provider to use. Defaults to EODHD.
      * @return StockQuoteDTO|null
      * @throws \Exception
      */
@@ -94,7 +104,7 @@ class StockApiService
      * Get stock information from external API by ISIN.
      *
      * @param string $isin
-     * @param string|null $provider Provider to use (PROVIDER_FINNHUB, PROVIDER_FMP, or PROVIDER_ALPHAVANTAGE). Defaults to PROVIDER_FINNHUB.
+     * @param string|null $provider Provider to use. Defaults to EODHD.
      * @return StockInfoDTO|null
      * @throws \Exception
      */
@@ -128,9 +138,9 @@ class StockApiService
 
     /**
      * Get candle data (OHLCV) for a stock symbol with custom parameters.
-     * When $provider is null, tries finnhub → fmp → alphavantage until one succeeds.
+     * When $provider is null, uses the active provider order (EODHD only).
      *
-     * @param string $symbol The stock symbol (ticker), e.g., 'AAPL'.
+     * @param string $symbol The stock symbol (ticker), e.g., 'AAPL.US'.
      * @param int $fromTimestamp Unix timestamp for start time.
      * @param int $toTimestamp Unix timestamp for end time.
      * @param string $resolution Resolution: '1', '5', '15', '30', '60', 'D', 'W', 'M'.
@@ -163,7 +173,7 @@ class StockApiService
      * Get candle data (OHLCV) for a stock symbol on a specific date.
      * When $provider is null, tries providers with fallback.
      *
-     * @param string $symbol The stock symbol (ticker), e.g., 'AAPL'.
+     * @param string $symbol The stock symbol (ticker), e.g., 'AAPL.US'.
      * @param Carbon $date The desired date (will use closing price of that day).
      * @param string|null $provider Provider to use, or null for fallback chain.
      * @return StockCandleDTO|null DTO containing all candle data, or null on error.
@@ -176,4 +186,3 @@ class StockApiService
         return $this->getCandleData($symbol, $fromTimestamp, $toTimestamp, 'D', $provider);
     }
 }
-

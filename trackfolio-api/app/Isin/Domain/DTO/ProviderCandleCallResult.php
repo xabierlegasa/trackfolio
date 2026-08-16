@@ -10,5 +10,7 @@ class ProviderCandleCallResult
         public readonly mixed $response = null,
         public readonly ?int $httpStatus = null,
         public readonly ?string $errorMessage = null,
+        public readonly bool $rateLimited = false,
+        public readonly ?int $providerRequestId = null,
     ) {}
 }

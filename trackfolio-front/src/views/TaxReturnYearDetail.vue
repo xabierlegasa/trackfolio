@@ -6,9 +6,6 @@
       <RouterLink :to="{ name: 'tax-return-years' }" class="btn btn-ghost btn-sm">
         {{ $t('taxReturnYear.backYears') }}
       </RouterLink>
-      <RouterLink :to="{ name: 'dashboard' }" class="btn btn-ghost btn-sm">
-        {{ $t('taxReturnYear.backDashboard') }}
-      </RouterLink>
     </div>
 
     <div v-if="isLoading" class="flex justify-center">

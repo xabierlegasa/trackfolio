@@ -8,6 +8,7 @@ use App\Isin\Domain\DTO\StockQuoteDTO;
 use App\Isin\Domain\DTO\StockSearchResponseDTO;
 use App\Isin\Domain\DTO\StockSearchResultDTO;
 use App\Isin\Domain\Exception\ProviderHttpException;
+use App\Isin\Domain\Service\ThrottleStockApiRequestService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
@@ -178,6 +179,7 @@ class FmpProvider implements StockApiProviderInterface
                 response: $e->rawResponse,
                 httpStatus: $e->httpStatus,
                 errorMessage: $e->getMessage(),
+                rateLimited: $this->isRateLimitedException($e),
             );
         } catch (\Throwable $e) {
             return new ProviderCandleCallResult(
@@ -188,6 +190,20 @@ class FmpProvider implements StockApiProviderInterface
                 errorMessage: $e->getMessage(),
             );
         }
+    }
+
+    private function isRateLimitedException(ProviderHttpException $e): bool
+    {
+        if ($e->httpStatus === 429) {
+            return true;
+        }
+        $haystack = strtolower($e->getMessage() . ' ' . json_encode($e->rawResponse));
+
+        return str_contains($haystack, 'limit reach')
+            || str_contains($haystack, 'too many requests')
+            || str_contains($haystack, 'rate limit')
+            || str_contains($haystack, '25 requests per day')
+            || str_contains($haystack, 'premium plans');
     }
 
     /**
@@ -306,7 +322,7 @@ class FmpProvider implements StockApiProviderInterface
         $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        Log::info('curl request to FMP: ' . $url);
+        Log::info('curl request to FMP: ' . ThrottleStockApiRequestService::redactSecretsInUrl($url));
         Log::info('response: ' . $response);
         Log::info('http code: ' . $httpCode);
 

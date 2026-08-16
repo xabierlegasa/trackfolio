@@ -10,7 +10,6 @@
   },
   "taxReturnYears": {
     "title": "Income tax return",
-    "backDashboard": "Back to dashboard",
     "empty": "No imported transactions yet. Upload your Degiro CSV first.",
     "exercise": "Exercise {year}",
     "evolutionTitle": "Evolution by year",
@@ -25,7 +24,6 @@
   "taxReturnYear": {
     "title": "Exercise {year}",
     "backYears": "All years",
-    "backDashboard": "Dashboard",
     "noSales": "No sales (disposals) in this calendar year in your imported data.",
     "exportCsv": "Export CSV",
     "copyProduct": "Copy product name",
@@ -112,6 +110,11 @@
       "description": "Upload your Degiro transaction CSV file to import your trading data.",
       "button": "Upload Degiro Transactions CSV"
     },
+    "uploadAccountStatements": {
+      "title": "Upload Account Statements",
+      "description": "Upload your Degiro Account Statement CSV so cash balances feed Stats and Evolution.",
+      "button": "Upload Account Statement CSV"
+    },
     "portfolioStats": {
       "title": "Stats",
       "description": "View your current portfolio composition based on all your transactions.",
@@ -130,18 +133,6 @@
   },
   "configuration": {
     "title": "Configuration",
-    "backToDashboard": "Back to dashboard",
-    "leverage": {
-      "title": "Leverage",
-      "description": "Borrowed capital / Degiro debit balance. Subtracted from the portfolio total in EUR. Every save is kept in history.",
-      "amountLabel": "Current leverage (EUR)",
-      "hint": "Enter whole euros. Use 0 if you have no leverage.",
-      "save": "Save leverage",
-      "saved": "Leverage saved.",
-      "historyTitle": "History",
-      "historyDate": "Date",
-      "historyAmount": "Amount"
-    },
     "dangerZone": {
       "title": "Danger zone",
       "description": "Permanently remove every Degiro transaction you have imported. This cannot be undone.",
@@ -278,7 +269,7 @@
     "summary": {
       "balance": "Balance",
       "portfolio": "Portfolio",
-      "leverage": "Leverage",
+      "cash": "Cash",
       "day": "Day",
       "totalPl": "Total P/L"
     },
@@ -286,15 +277,15 @@
       "close": "Close",
       "balance": {
         "title": "Balance",
-        "description": "This is the net value of your account in euros as of the quote date shown above.\n\nIt is calculated as:\nPortfolio − Leverage\n\nIn other words: the market value of all open positions (converted to EUR with today’s USD→EUR rate), minus the leverage / debit balance you configured under Configuration.\n\nIf leverage is 0 €, Balance equals Portfolio.\n\nIt does not include cash in the account or P/L from already closed trades — only the net value of the open book after subtracting borrowed capital."
+        "description": "Net worth of your account in euros as of the quote date shown above.\n\nIt is calculated as:\nPortfolio + Cash\n\nPortfolio is the market value of open positions; Cash is the last EUR Balance from your uploaded Degiro Account Statement on or before that date (can be negative if you have a debit).\n\nClosed-trade P/L is shown separately under Total P/L."
       },
       "portfolio": {
         "title": "Portfolio",
-        "description": "This is the gross market value of all open positions, in euros.\n\nPer position:\nD‑1 closing price × quantity\n\nEach position is converted to EUR with today’s stored USD→EUR rate (open.er-api), then all positions are summed.\n\nOnly ISINs with non-zero net quantity (open holdings) are included. Leverage is not subtracted here — see Balance for that.\n\nPrices use the date in the «Data as of» block (latest available market close relative to yesterday UTC, with lookback when the market was closed)."
+        "description": "Gross market value of all open positions, in euros.\n\nPer position:\nclosing price × quantity\n\nConverted to EUR with the USD→EUR rate for the as-of date, then summed.\n\nCash is not included here — see Cash and Balance."
       },
-      "leverage": {
-        "title": "Leverage",
-        "description": "This is the borrowed capital / debit balance you entered under Configuration, in euros.\n\nIt is not pulled automatically from Degiro: each time you save an amount, a new history row is stored (user_leverages) with a timestamp, and this figure uses the latest value.\n\nIt is shown in grey as contextual data; its main effect is on Balance (Portfolio − Leverage).\n\nIf you never set leverage, it is 0 €."
+      "cash": {
+        "title": "Cash",
+        "description": "EUR cash / debit balance from your Degiro Account Statement CSV.\n\nFor the as-of date we take the last statement row with Balance currency EUR and movement date on or before that day.\n\nUpload Account Statements from the Dashboard. Negative values mean a debit / margin balance."
       },
       "day": {
         "title": "Day",
@@ -306,6 +297,22 @@
       }
     },
     "dataAsOfLabel": "Data as of",
+    "asOfPickerLabel": "Choose as-of date (YYYY/MM/DD)",
+    "asOfPrevDay": "Previous day",
+    "asOfNextDay": "Next day",
+    "asOfPrevMonth": "Previous month",
+    "asOfNextMonth": "Next month",
+    "asOfPrevYear": "Previous year",
+    "asOfNextYear": "Next year",
+    "asOfPrevYears": "Previous years",
+    "asOfNextYears": "Next years",
+    "asOfPickMonthYear": "Choose month and year",
+    "asOfPickYear": "Choose year",
+    "marketClosedWeekend": "The US stock market was closed on {date} (weekend).",
+    "marketClosedHoliday": "The US stock market was closed on {date} ({holiday}).",
+    "marketClosedTooRecent": "Closing prices for {date} are not available yet. Latest completed session: {latest}.",
+    "marketClosedGeneric": "The US stock market was closed on that date.",
+    "marketHolidayFallback": "holiday",
     "fxRateLabel": "EUR vs USD",
     "fxRateValue": "1 USD = {rate} EUR",
     "fxRateAsOf": "as of {date}",
@@ -337,15 +344,45 @@
   },
   "portfolioEvolution": {
     "title": "Balance evolution",
-    "subtitle": "Last {months} months from stored daily snapshots (no recalculation).",
-    "empty": "No daily snapshots yet. Open Stats/Portfolio at least once to save today's snapshot.",
+    "subtitle": "Daily snapshots for {year}.",
+    "subtitleMonth": "Month-end balance from your first trade to today. Gaps mean no snapshot that month.",
+    "subtitleYear": "Year-end balance (last available day each year) from your first trade to today.",
+    "yearLabel": "Year",
+    "views": {
+      "day": "By day",
+      "month": "By month",
+      "year": "By year"
+    },
+    "empty": "No daily snapshots yet for this year. Open Stats/Portfolio or recalculate to fill the chart.",
+    "recalculate": "Clear data and recalculate",
+    "recalculateStarted": "Recalculation started. Snapshots will fill in from your first trade forward to yesterday. Refresh the page to see the evolution",
+    "recalculateFailed": "Could not start recalculation.",
     "table": {
       "date": "Date",
+      "month": "Month",
+      "year": "Year",
       "balance": "Balance",
       "portfolio": "Portfolio",
-      "leverage": "Leverage",
+      "cash": "Cash",
       "day": "Day",
       "totalPl": "Total P/L"
+    }
+  },
+  "uploadAccountStatements": {
+    "title": "Upload Account Statements",
+    "description": "Import your Degiro Account Statement CSV. The Balance column (EUR) is used as cash for each as-of date. Duplicate rows are ignored.",
+    "selectFile": "Choose CSV file",
+    "upload": "Upload",
+    "uploading": "Uploading…",
+    "success": {
+      "title": "Upload complete",
+      "newCount": "{count} new rows imported",
+      "ignoredCount": "{count} rows already existed and were ignored",
+      "goToDashboard": "Back to dashboard"
+    },
+    "error": {
+      "title": "Upload failed",
+      "details": "{count} problem(s) found"
     }
   },
   "trades": {
@@ -374,6 +411,24 @@
     "positiveSum": "Positive",
     "negativeSum": "Negative",
     "difference": "Difference"
+  },
+  "admin": {
+    "title": "Admin",
+    "processesTitle": "Snapshot calculation processes",
+    "processDetailTitle": "Process #{id}",
+    "logsTitle": "Process logs",
+    "noProcesses": "No snapshot calculation processes yet.",
+    "noLogs": "No logs for this process.",
+    "backToAdmin": "Back to Admin",
+    "providerRequestTitle": "Provider request #{id}",
+    "providerRequestAttr": "Attribute",
+    "providerRequestValue": "Value",
+    "pagination": {
+      "page": "Page {current} of {total}",
+      "itemsPerPage": "Items per page"
+    },
+    "prev": "Previous",
+    "next": "Next"
   }
 }
 

@@ -67,6 +67,23 @@
           </div>
         </div>
 
+        <div class="card bg-base-200/50 shadow-sm border border-base-300/60">
+          <div class="card-body py-5 gap-2">
+            <h2 class="text-base font-semibold text-base-content/80">
+              {{ $t('dashboard.uploadAccountStatements.title') }}
+            </h2>
+            <p class="text-sm text-base-content/55 mb-2">
+              {{ $t('dashboard.uploadAccountStatements.description') }}
+            </p>
+            <RouterLink
+              :to="{ name: 'upload-account-statements' }"
+              class="btn btn-sm btn-outline btn-primary w-fit"
+            >
+              {{ $t('dashboard.uploadAccountStatements.button') }}
+            </RouterLink>
+          </div>
+        </div>
+
         <div
           v-if="transactionCount !== null && transactionCount > 0"
           class="card bg-base-200/50 shadow-sm border border-base-300/60"

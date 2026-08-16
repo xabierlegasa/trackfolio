@@ -147,18 +147,12 @@
         </div>
       </div>
     </div>
-
-    <div class="mt-6">
-      <RouterLink :to="{ name: 'dashboard' }" class="btn btn-ghost">
-        {{ $t('common.backToDashboard') }}
-      </RouterLink>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { authService, DegiroTransaction, UploadDegiroTransactionsErrorResponse, UploadDegiroTransactionsSkippedRow } from '../services/authService'
 import {

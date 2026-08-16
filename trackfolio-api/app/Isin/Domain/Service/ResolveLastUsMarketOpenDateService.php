@@ -12,6 +12,7 @@ class ResolveLastUsMarketOpenDateService
     private const EXCHANGE = 'US';
     private const TIMEZONE = 'America/New_York';
     private const LOOKBACK_DAYS = 14;
+    private const HOLIDAY_CACHE_KEY = 'finnhub:us_market_holidays';
 
     /**
      * Most recent US session that is not today (NY) and was open.
@@ -34,11 +35,52 @@ class ResolveLastUsMarketOpenDateService
         return $resolved;
     }
 
+    /**
+     * @return array{open: bool, reason: string|null, holiday: string|null}
+     */
+    public function marketStatusOn(string $date): array
+    {
+        $parsed = Carbon::createFromFormat('Y-m-d', $date);
+        if ($parsed === false) {
+            return ['open' => false, 'reason' => 'invalid', 'holiday' => null];
+        }
+
+        $parsed = $parsed->startOfDay();
+        if ($parsed->isWeekend()) {
+            return ['open' => false, 'reason' => 'weekend', 'holiday' => null];
+        }
+
+        $calendar = $this->holidayCalendar();
+        $holidayName = $calendar['closed'][$date] ?? null;
+        if (is_string($holidayName)) {
+            return ['open' => false, 'reason' => 'holiday', 'holiday' => $holidayName !== '' ? $holidayName : null];
+        }
+
+        return ['open' => true, 'reason' => null, 'holiday' => null];
+    }
+
     private function resolveUncached(): ?string
     {
-        $provider = $this->tryProvider();
+        $calendar = $this->holidayCalendar();
+        $timezone = $calendar['timezone'];
+        $todayInTz = Carbon::now($timezone)->toDateString();
+
+        return $this->walkBackToOpenDay($timezone, $todayInTz, $calendar['closed']);
+    }
+
+    /**
+     * @return array{timezone: string, closed: array<string, string>}
+     */
+    private function holidayCalendar(): array
+    {
+        $cached = Cache::get(self::HOLIDAY_CACHE_KEY);
+        if (is_array($cached) && isset($cached['closed'], $cached['timezone'])) {
+            return $cached;
+        }
+
         $timezone = self::TIMEZONE;
-        $closedDates = [];
+        $closed = [];
+        $provider = $this->tryProvider();
 
         if ($provider !== null) {
             $status = $provider->getMarketStatus(self::EXCHANGE);
@@ -47,20 +89,24 @@ class ResolveLastUsMarketOpenDateService
             }
 
             $holiday = $provider->getMarketHoliday(self::EXCHANGE);
-            $closedDates = $this->fullCloseDates($holiday);
+            $closed = $this->fullCloseDates($holiday);
             if (is_array($holiday) && is_string($holiday['timezone'] ?? null) && $holiday['timezone'] !== '') {
                 $timezone = $holiday['timezone'];
             }
         }
 
-        $todayInTz = Carbon::now($timezone)->toDateString();
+        $calendar = [
+            'timezone' => $timezone,
+            'closed' => $closed,
+        ];
+        Cache::put(self::HOLIDAY_CACHE_KEY, $calendar, now()->addHours(12));
 
-        return $this->walkBackToOpenDay($timezone, $todayInTz, $closedDates);
+        return $calendar;
     }
 
     /**
      * @param array<string, mixed>|null $holidayPayload
-     * @return array<string, true>
+     * @return array<string, string>
      */
     private function fullCloseDates(?array $holidayPayload): array
     {
@@ -77,8 +123,9 @@ class ResolveLastUsMarketOpenDateService
 
             $date = $row['atDate'] ?? null;
             $hours = trim((string) ($row['tradingHour'] ?? ''));
+            $name = trim((string) ($row['eventName'] ?? ''));
             if (is_string($date) && $date !== '' && $hours === '') {
-                $closed[$date] = true;
+                $closed[$date] = $name;
             }
         }
 
@@ -86,7 +133,7 @@ class ResolveLastUsMarketOpenDateService
     }
 
     /**
-     * @param array<string, true> $closedDates
+     * @param array<string, string> $closedDates
      */
     private function walkBackToOpenDay(string $timezone, string $today, array $closedDates): ?string
     {

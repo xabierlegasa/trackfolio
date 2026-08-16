@@ -1,0 +1,20 @@
+---
+description: Apply Trackfolio API DDD and clean-code standards when editing the Laravel app
+globs: trackfolio-api/**/*.php
+alwaysApply: false
+---
+
+# Trackfolio API
+
+This file is in the **monorepo root** so Cursor attaches it when PHP under `trackfolio-api/` is in play. Authoritative detail lives in `trackfolio-api/AGENTS.md` and `trackfolio-api/.cursor/rules/`.
+
+## Must follow
+
+1. **DDD by bounded context** (`app/{Context}/Domain|Application|Infrastructure`).
+2. **Thin controllers** — no Eloquent queries, no portfolio math.
+3. **Use cases** orchestrate; **domain services** hold rules; **repositories** hold SQL.
+4. **Domain must not depend on HTTP.**
+5. Money as **integer cents**. Degiro `date` is `DD-MM-YYYY`.
+6. Do not call stock/FX providers again for an as-of date already cached in `portfolio_daily_snapshots.view_payload`.
+
+If a change fights these rules, stop and split the class rather than growing `PortfolioStatsController` or a Domain service that returns `JsonResponse`.

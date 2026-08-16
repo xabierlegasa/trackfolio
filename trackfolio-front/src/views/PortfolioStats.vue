@@ -2,50 +2,17 @@
   <div :class="embedded ? undefined : 'container mx-auto p-8'">
     <h1 v-if="!embedded" class="text-4xl font-bold mb-8">{{ $t('portfolioStats.title') }}</h1>
     
-    <div v-if="isLoading" class="flex justify-center">
+    <div v-if="isLoading && !hasLoadedOnce" class="flex justify-center">
       <span class="loading loading-spinner loading-lg"></span>
     </div>
 
-    <div v-else-if="error" class="alert alert-error">
-      <span>{{ error }}</span>
-    </div>
-
-    <div v-else-if="holdings.length === 0" class="card bg-base-100 shadow-xl">
-      <div class="card-body">
-        <p class="text-base-content/70">{{ $t('portfolioStats.noHoldings') }}</p>
-      </div>
+    <div v-else-if="fatalError" class="alert alert-error">
+      <span>{{ fatalError }}</span>
     </div>
 
     <div v-else class="space-y-6">
       <div
-        v-if="closingDateLabel || fxRateLabel"
-        class="rounded-xl border border-base-300 bg-base-100 px-4 py-3 sm:px-5"
-      >
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-          <div v-if="closingDateLabel">
-            <p class="text-xs uppercase tracking-wide text-base-content/50 font-medium">
-              {{ $t('portfolioStats.dataAsOfLabel') }}
-            </p>
-            <p class="text-lg sm:text-xl font-semibold text-base-content mt-0.5 capitalize">
-              {{ closingDateFriendly }}
-            </p>
-          </div>
-          <div v-if="fxRateLabel">
-            <p class="text-xs uppercase tracking-wide text-base-content/50 font-medium sm:text-right">
-              {{ $t('portfolioStats.fxRateLabel') }}
-            </p>
-            <p class="text-lg sm:text-xl font-semibold text-base-content mt-0.5 tabular-nums sm:text-right">
-              {{ fxRateValue }}
-            </p>
-            <p v-if="fxRateDateFriendly" class="text-sm text-base-content/55 mt-0.5 capitalize sm:text-right">
-              {{ $t('portfolioStats.fxRateAsOf', { date: fxRateDateFriendly }) }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div
-        v-if="portfolioEurMinUnit != null || netMarketValueEurMinUnit != null"
+        v-if="portfolioEurMinUnit != null || netMarketValueEurMinUnit != null || hasLoadedOnce"
         class="rounded-2xl bg-base-200/70 px-5 py-4 sm:px-6"
       >
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -83,18 +50,18 @@
           </div>
           <div>
             <p class="text-sm text-base-content/60 flex items-center gap-1">
-              <span>{{ $t('portfolioStats.summary.leverage') }}</span>
+              <span>{{ $t('portfolioStats.summary.cash') }}</span>
               <button
                 type="button"
                 class="btn btn-ghost btn-xs btn-circle text-base-content/50 hover:text-base-content"
-                :aria-label="$t('portfolioStats.summaryTooltips.leverage.title')"
-                @click="showSummaryTooltip('leverage')"
+                :aria-label="$t('portfolioStats.summaryTooltips.cash.title')"
+                @click="showSummaryTooltip('cash')"
               >
                 ?
               </button>
             </p>
             <p class="text-2xl sm:text-3xl font-bold tabular-nums tracking-tight mt-1 text-base-content/45">
-              {{ formatEurAmount(leverageEurMinUnit) }}
+              {{ formatEurAmount(cashEurMinUnit) }}
             </p>
           </div>
           <div>
@@ -137,6 +104,76 @@
           </div>
         </div>
       </div>
+
+      <div
+        class="rounded-xl border border-base-300 bg-base-100 px-4 py-3 sm:px-5"
+      >
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+          <div>
+            <p class="text-xs uppercase tracking-wide text-base-content/50 font-medium">
+              {{ $t('portfolioStats.dataAsOfLabel') }}
+            </p>
+            <div class="mt-1 flex flex-wrap items-center gap-2">
+              <p class="text-lg sm:text-xl font-semibold text-base-content capitalize">
+                {{ closingDateFriendly || '—' }}
+              </p>
+              <div class="inline-flex items-center gap-1">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-square border border-base-300 bg-base-100"
+                  :disabled="isLoading || !canGoPrevAsOfDay"
+                  :aria-label="$t('portfolioStats.asOfPrevDay')"
+                  @click="shiftAsOfByDays(-1)"
+                >
+                  &lt;
+                </button>
+                <AsOfDatePicker
+                  :model-value="selectedAsOf"
+                  :max="lastUsMarketOpenDate"
+                  :disabled="isLoading"
+                  :aria-label="$t('portfolioStats.asOfPickerLabel')"
+                  @update:model-value="onAsOfSelected"
+                />
+                <button
+                  type="button"
+                  class="btn btn-sm btn-square border border-base-300 bg-base-100"
+                  :disabled="isLoading || !canGoNextAsOfDay"
+                  :aria-label="$t('portfolioStats.asOfNextDay')"
+                  @click="shiftAsOfByDays(1)"
+                >
+                  &gt;
+                </button>
+              </div>
+            </div>
+          </div>
+          <div v-if="fxRateLabel">
+            <p class="text-xs uppercase tracking-wide text-base-content/50 font-medium sm:text-right">
+              {{ $t('portfolioStats.fxRateLabel') }}
+            </p>
+            <p class="text-lg sm:text-xl font-semibold text-base-content mt-0.5 tabular-nums sm:text-right">
+              {{ fxRateValue }}
+            </p>
+            <p v-if="fxRateDateFriendly" class="text-sm text-base-content/55 mt-0.5 capitalize sm:text-right">
+              {{ $t('portfolioStats.fxRateAsOf', { date: fxRateDateFriendly }) }}
+            </p>
+          </div>
+        </div>
+        <div v-if="dateError" class="alert alert-warning mt-3 py-2">
+          <span>{{ dateError }}</span>
+        </div>
+      </div>
+
+      <div v-if="isLoading" class="flex justify-center py-6">
+        <span class="loading loading-spinner loading-lg"></span>
+      </div>
+
+      <div v-else-if="holdings.length === 0" class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <p class="text-base-content/70">{{ $t('portfolioStats.noHoldings') }}</p>
+        </div>
+      </div>
+
+      <template v-else>
 
       <div v-if="performanceTiles.length > 0" class="card bg-base-100 shadow-xl">
         <div class="card-body">
@@ -429,6 +466,7 @@
           </div>
         </div>
       </div>
+      </template>
     </div>
 
     <dialog ref="summaryTooltipModal" class="modal">
@@ -449,8 +487,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { ref, onMounted, computed, watch } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   authService,
@@ -467,6 +505,7 @@ import {
   formatDecimal,
 } from '../utils/numberFormat'
 import { layoutTreemap } from '../utils/treemap'
+import AsOfDatePicker from '../components/AsOfDatePicker.vue'
 
 withDefaults(defineProps<{ embedded?: boolean }>(), {
   embedded: false,
@@ -476,8 +515,18 @@ withDefaults(defineProps<{ embedded?: boolean }>(), {
 const MAX_PRODUCT_QUERY_LEN = 200
 
 const { t, locale } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
-type SummaryTooltipKey = 'balance' | 'portfolio' | 'leverage' | 'day' | 'totalPl'
+const parseAsOfQuery = (value: unknown): string | null => {
+  const raw = Array.isArray(value) ? value[0] : value
+  if (typeof raw !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return null
+  }
+  return raw
+}
+
+type SummaryTooltipKey = 'balance' | 'portfolio' | 'cash' | 'day' | 'totalPl'
 
 const summaryTooltipModal = ref<HTMLDialogElement | null>(null)
 const summaryTooltipTitle = ref('')
@@ -502,18 +551,21 @@ const transactionsLinkForProduct = (product: string) => {
 }
 
 const isLoading = ref(true)
-const error = ref<string | null>(null)
+const hasLoadedOnce = ref(false)
+const fatalError = ref<string | null>(null)
+const dateError = ref<string | null>(null)
 const holdings = ref<PortfolioHolding[]>([])
 const concentration = ref<PortfolioConcentrationItem[]>([])
 const performanceTemperature = ref<PortfolioPerformanceTemperatureItem[]>([])
 const portfolioEurMinUnit = ref<number | null>(null)
 const netMarketValueEurMinUnit = ref<number | null>(null)
-const leverageEurMinUnit = ref(0)
+const cashEurMinUnit = ref(0)
 const dayChangeEurMinUnit = ref<number | null>(null)
 const totalGainLossEurMinUnit = ref<number | null>(null)
 const usdToEurRate = ref<number | null>(null)
 const usdToEurRateDate = ref<string | null>(null)
 const lastUsMarketOpenDate = ref<string | null>(null)
+const selectedAsOf = ref<string | null>(null)
 const currentPage = ref(1)
 const lastPage = ref(1)
 const perPage = ref(20)
@@ -577,7 +629,8 @@ const formatFriendlyClosingDate = (isoDate: string): string => {
 }
 
 const closingDateIso = computed(() => {
-  return lastUsMarketOpenDate.value
+  return selectedAsOf.value
+    ?? lastUsMarketOpenDate.value
     ?? holdings.value.find((h) => h.closing_date)?.closing_date
     ?? null
 })
@@ -588,9 +641,6 @@ const closingDateFriendly = computed(() => {
   }
   return formatFriendlyClosingDate(closingDateIso.value)
 })
-
-const closingDateLabel = computed(() => closingDateFriendly.value != null)
-
 const fxRateDateFriendly = computed(() => {
   if (!usdToEurRateDate.value) {
     return null
@@ -747,35 +797,128 @@ const toggleSort = (column: string) => {
   loadPage(1)
 }
 
-const loadPage = async (page: number) => {
+const marketClosedMessage = (data: {
+  message?: string
+  reason?: string
+  date?: string
+  holiday?: string | null
+}): string => {
+  const dateLabel = data.date ? formatFriendlyClosingDate(data.date) : data.date
+  if (data.reason === 'weekend' && dateLabel) {
+    return t('portfolioStats.marketClosedWeekend', { date: dateLabel })
+  }
+  if (data.reason === 'holiday' && dateLabel) {
+    return t('portfolioStats.marketClosedHoliday', {
+      date: dateLabel,
+      holiday: data.holiday || t('portfolioStats.marketHolidayFallback'),
+    })
+  }
+  if (data.reason === 'too_recent' && dateLabel) {
+    const latest = lastUsMarketOpenDate.value
+      ? formatFriendlyClosingDate(lastUsMarketOpenDate.value)
+      : lastUsMarketOpenDate.value
+    return t('portfolioStats.marketClosedTooRecent', {
+      date: dateLabel,
+      latest: latest || '',
+    })
+  }
+  return data.message || t('portfolioStats.marketClosedGeneric')
+}
+
+const onAsOfSelected = (value: string) => {
+  if (!value || value === selectedAsOf.value) {
+    return
+  }
+  loadPage(1, value)
+}
+
+const shiftIsoDate = (iso: string, days: number): string => {
+  const [y, m, d] = iso.split('-').map(Number)
+  const date = new Date(Date.UTC(y, m - 1, d))
+  date.setUTCDate(date.getUTCDate() + days)
+  const yy = date.getUTCFullYear()
+  const mm = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const dd = String(date.getUTCDate()).padStart(2, '0')
+  return `${yy}-${mm}-${dd}`
+}
+
+const canGoPrevAsOfDay = computed(() => Boolean(selectedAsOf.value))
+
+const canGoNextAsOfDay = computed(() => {
+  if (!selectedAsOf.value) {
+    return false
+  }
+  const next = shiftIsoDate(selectedAsOf.value, 1)
+  if (lastUsMarketOpenDate.value && next > lastUsMarketOpenDate.value) {
+    return false
+  }
+  return true
+})
+
+const shiftAsOfByDays = (days: number) => {
+  if (!selectedAsOf.value) {
+    return
+  }
+  const next = shiftIsoDate(selectedAsOf.value, days)
+  if (days > 0 && lastUsMarketOpenDate.value && next > lastUsMarketOpenDate.value) {
+    return
+  }
+  onAsOfSelected(next)
+}
+
+const syncAsOfToUrl = (asOf: string) => {
+  if (parseAsOfQuery(route.query.asOf) === asOf) {
+    return
+  }
+  const query = { ...route.query, asOf }
+  if (!query.tab || query.tab === 'portfolio') {
+    delete query.tab
+  }
+  router.replace({ name: 'statistics', query })
+}
+
+const loadPage = async (page: number, asOfOverride?: string) => {
   if (page < 1) return
-  
+
+  const asOf = asOfOverride ?? selectedAsOf.value ?? undefined
   isLoading.value = true
-  error.value = null
-  
+  fatalError.value = null
+  dateError.value = null
+
   try {
     const response = await authService.getPortfolioStats(
       perPage.value,
       page,
       sortBy.value,
       sortOrder.value,
+      asOf,
     )
     holdings.value = response.data
     concentration.value = response.concentration ?? []
     performanceTemperature.value = response.performance_temperature ?? []
     portfolioEurMinUnit.value = response.total_market_value_eur_min_unit ?? null
     netMarketValueEurMinUnit.value = response.net_market_value_eur_min_unit ?? null
-    leverageEurMinUnit.value = response.leverage_eur_min_unit ?? 0
+    cashEurMinUnit.value = response.cash_eur_min_unit ?? 0
     dayChangeEurMinUnit.value = response.day_change_eur_min_unit ?? null
     totalGainLossEurMinUnit.value = response.total_gain_loss_eur_min_unit ?? null
     usdToEurRate.value = response.usd_to_eur_rate ?? null
     usdToEurRateDate.value = response.usd_to_eur_rate_date ?? null
     lastUsMarketOpenDate.value = response.last_us_market_open_date ?? null
+    selectedAsOf.value = response.as_of_date ?? response.last_us_market_open_date ?? asOf ?? null
     currentPage.value = response.current_page
     lastPage.value = response.last_page
+    hasLoadedOnce.value = true
+    if (selectedAsOf.value) {
+      syncAsOfToUrl(selectedAsOf.value)
+    }
   } catch (err: any) {
     console.error('Failed to load portfolio stats:', err)
-    error.value = err.response?.data?.message || 'Failed to load portfolio stats'
+    const data = err.response?.data
+    if (err.response?.status === 400 && data?.error === 'market_closed') {
+      dateError.value = marketClosedMessage(data)
+    } else {
+      fatalError.value = data?.message || 'Failed to load portfolio stats'
+    }
   } finally {
     isLoading.value = false
   }
@@ -785,7 +928,18 @@ const handlePerPageChange = () => {
   loadPage(1)
 }
 
+watch(
+  () => route.query.asOf,
+  (value) => {
+    const asOf = parseAsOfQuery(value)
+    if (asOf == null || asOf === selectedAsOf.value || isLoading.value) {
+      return
+    }
+    loadPage(1, asOf)
+  },
+)
+
 onMounted(async () => {
-  await loadPage(1)
+  await loadPage(1, parseAsOfQuery(route.query.asOf) ?? undefined)
 })
 </script>

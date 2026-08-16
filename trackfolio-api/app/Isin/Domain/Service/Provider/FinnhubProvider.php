@@ -7,6 +7,7 @@ use App\Isin\Domain\DTO\StockCandleDTO;
 use App\Isin\Domain\DTO\StockQuoteDTO;
 use App\Isin\Domain\DTO\StockSearchResponseDTO;
 use App\Isin\Domain\Exception\ProviderHttpException;
+use App\Isin\Domain\Service\ThrottleStockApiRequestService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
@@ -54,13 +55,28 @@ class FinnhubProvider implements StockApiProviderInterface
     }
 
     /**
-     * Free Finnhub plans do not include /stock/candle (403).
-     * We approximate daily close via /quote:
-     * - requested date < today UTC → previousClose (pc)
-     * - requested date >= today UTC → current price (c) with day's OHLC
+     * Free Finnhub plans do not include historical candles (/stock/candle → 403).
+     * /quote is live only and must never be used for past as-of dates.
+     *
+     * Allowed only when the requested session date is today or yesterday UTC
+     * (live last close via previousClose / current).
      */
     public function fetchCandleData(string $symbol, int $fromTimestamp, int $toTimestamp, string $resolution = 'D'): ProviderCandleCallResult
     {
+        $requestedDate = Carbon::createFromTimestamp($fromTimestamp, 'UTC')->toDateString();
+        $today = Carbon::now('UTC')->toDateString();
+        $yesterday = Carbon::yesterday('UTC')->toDateString();
+
+        if ($requestedDate < $yesterday) {
+            return new ProviderCandleCallResult(
+                success: false,
+                candle: null,
+                response: null,
+                httpStatus: null,
+                errorMessage: "Finnhub /quote cannot provide historical close for {$requestedDate}; use FMP or Alpha Vantage",
+            );
+        }
+
         try {
             $data = $this->apiRequest('quote', ['symbol' => strtoupper($symbol)]);
 
@@ -74,8 +90,6 @@ class FinnhubProvider implements StockApiProviderInterface
                 );
             }
 
-            $requestedDate = Carbon::createFromTimestamp($fromTimestamp, 'UTC')->toDateString();
-            $today = Carbon::now('UTC')->toDateString();
             $usePreviousClose = $requestedDate < $today;
 
             $close = $usePreviousClose
@@ -130,6 +144,7 @@ class FinnhubProvider implements StockApiProviderInterface
                 response: $e->rawResponse,
                 httpStatus: $e->httpStatus,
                 errorMessage: $e->getMessage(),
+                rateLimited: $e->httpStatus === 429 || str_contains(strtolower($e->getMessage()), 'too many requests'),
             );
         } catch (\Throwable $e) {
             return new ProviderCandleCallResult(
@@ -187,7 +202,7 @@ class FinnhubProvider implements StockApiProviderInterface
         $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        Log::info('curl request to Finnhub: ' . $url);
+        Log::info('curl request to Finnhub: ' . ThrottleStockApiRequestService::redactSecretsInUrl($url));
         Log::info('response: ' . $response);
         Log::info('http code: ' . $httpCode);
 

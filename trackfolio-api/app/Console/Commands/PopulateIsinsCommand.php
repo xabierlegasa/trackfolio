@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\DegiroTransaction\Domain\Entity\DegiroTransaction;
-use App\Isin\Domain\DTO\StockInfoDTO;
 use App\Isin\Domain\Entity\Isin;
 use App\Isin\Domain\Service\StockApiService;
 use Illuminate\Console\Command;
@@ -16,7 +15,7 @@ class PopulateIsinsCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'isins:populate {--provider= : Provider to use (finnhub, fmp, or alphavantage). Defaults to finnhub}';
+    protected $signature = 'isins:populate {--provider= : Provider to use (eodhd, finnhub, fmp, or alphavantage). Defaults to eodhd}';
 
     /**
      * The console command description.
@@ -26,86 +25,25 @@ class PopulateIsinsCommand extends Command
     protected $description = 'Populate isins table with information from degiro_transactions using stock API';
 
     /**
-     * Path to the manual ISIN data JSON file.
-     */
-    private const MANUAL_DATA_PATH = 'database/data/isin_manual_data.json';
-
-    /**
-     * Load manual ISIN data from JSON file.
-     *
-     * @return array<string, array{isin: string, symbol: string, description: string, type: string, display_symbol: string}>
-     */
-    private function loadManualData(): array
-    {
-        $filePath = base_path(self::MANUAL_DATA_PATH);
-
-        if (!file_exists($filePath)) {
-            return [];
-        }
-
-        $content = file_get_contents($filePath);
-        $data = json_decode($content, true);
-
-        if (!is_array($data)) {
-            return [];
-        }
-
-        // Convert array to associative array keyed by ISIN
-        $manualData = [];
-        foreach ($data as $item) {
-            if (isset($item['isin'])) {
-                $manualData[$item['isin']] = $item;
-            }
-        }
-
-        return $manualData;
-    }
-
-    /**
-     * Get stock info from manual data if available.
-     *
-     * @param string $isin
-     * @param array $manualData
-     * @return StockInfoDTO|null
-     */
-    private function getStockInfoFromManualData(string $isin, array $manualData): ?StockInfoDTO
-    {
-        if (!isset($manualData[$isin])) {
-            return null;
-        }
-
-        $data = $manualData[$isin];
-
-        return new StockInfoDTO(
-            symbol: $data['symbol'] ?? '',
-            description: $data['description'] ?? null,
-            displaySymbol: $data['display_symbol'] ?? $data['symbol'] ?? null,
-            type: $data['type'] ?? null,
-            quote: null, // Manual data doesn't include quote
-        );
-    }
-
-    /**
      * Execute the console command.
      */
     public function handle(StockApiService $stockApiService): int
     {
-        $provider = $this->option('provider') ?? StockApiService::PROVIDER_FINNHUB;
+        $provider = $this->option('provider') ?? StockApiService::PROVIDER_EODHD;
 
         // Validate provider
-        if (!in_array($provider, [StockApiService::PROVIDER_FINNHUB, StockApiService::PROVIDER_FMP, StockApiService::PROVIDER_ALPHAVANTAGE])) {
-            $this->error("Invalid provider: {$provider}. Available: finnhub, fmp, alphavantage");
+        $allowedProviders = [
+            StockApiService::PROVIDER_EODHD,
+            StockApiService::PROVIDER_FINNHUB,
+            StockApiService::PROVIDER_FMP,
+            StockApiService::PROVIDER_ALPHAVANTAGE,
+        ];
+        if (!in_array($provider, $allowedProviders, true)) {
+            $this->error('Invalid provider: ' . $provider . '. Available: ' . implode(', ', $allowedProviders));
             return Command::FAILURE;
         }
 
         $this->info("Starting to populate ISINs using provider: {$provider}");
-
-        // Load manual ISIN data
-        $manualData = $this->loadManualData();
-        $manualDataCount = count($manualData);
-        if ($manualDataCount > 0) {
-            $this->info("Loaded {$manualDataCount} ISIN(s) from manual data file");
-        }
 
         // Get all unique ISINs from degiro_transactions
         $uniqueIsins = DegiroTransaction::select('isin')
@@ -143,38 +81,25 @@ class PopulateIsinsCommand extends Command
         foreach ($isinsToProcess as $isin) {
             try {
                 Log::info("--------------------------------");
-                
-                // Check manual data first
-                $stockInfo = $this->getStockInfoFromManualData($isin, $manualData);
-                
+
+                Log::info("🔍 Requesting stock info for ISIN", [
+                    'isin' => $isin,
+                    'provider' => $provider,
+                ]);
+
+                $stockInfo = $stockApiService->getStockInfo($isin, $provider);
+
                 if ($stockInfo) {
-                    Log::info("📝 Using manual data for ISIN", [
+                    Log::info("✅ Received stock info response", [
                         'isin' => $isin,
-                        'data' => $stockInfo->toArray(),
+                        'provider' => $provider,
+                        'response' => $stockInfo->toArray(),
                     ]);
                 } else {
-                    // Log request
-                    Log::info("🔍 Requesting stock info for ISIN", [
+                    Log::info("❌ No stock info found in API", [
                         'isin' => $isin,
                         'provider' => $provider,
                     ]);
-
-                    // Get stock info from API
-                    $stockInfo = $stockApiService->getStockInfo($isin, $provider);
-
-                    // Log response
-                    if ($stockInfo) {
-                        Log::info("✅ Received stock info response", [
-                            'isin' => $isin,
-                            'provider' => $provider,
-                            'response' => $stockInfo->toArray(),
-                        ]);
-                    } else {
-                        Log::info("❌ No stock info found in API", [
-                            'isin' => $isin,
-                            'provider' => $provider,
-                        ]);
-                    }
                 }
 
                 if (!$stockInfo) {

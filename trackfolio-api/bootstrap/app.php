@@ -14,6 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Sanctum middleware for SPA authentication
         $middleware->statefulApi();
+
+        $middleware->alias([
+            'admin' => \App\Admin\Infrastructure\Middleware\EnsureUserIsAdmin::class,
+        ]);
         
         // Enable CSRF protection for API routes that use cookies (SPA mode)
         // The register endpoint will require CSRF token from Sanctum

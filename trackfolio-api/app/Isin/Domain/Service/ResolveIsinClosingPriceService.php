@@ -7,9 +7,11 @@ use App\Isin\Domain\Entity\IsinQuote;
 use App\Isin\Domain\Entity\TickerRequest;
 use App\Isin\Domain\DTO\StockCandleDTO;
 use App\Isin\Domain\Service\Provider\AlphaVantageProvider;
+use App\Isin\Domain\Service\Provider\EodhdProvider;
 use App\Isin\Domain\Service\Provider\FinnhubProvider;
 use App\Isin\Domain\Service\Provider\FmpProvider;
 use App\Isin\Domain\Service\Provider\StockApiProviderInterface;
+use App\Portfolio\Domain\Service\InvalidatePortfolioAsOfViewsService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -17,6 +19,17 @@ class ResolveIsinClosingPriceService
 {
     private const LOOKBACK_DAYS = 6;
 
+    private ?int $lastProviderRequestId = null;
+
+    public function __construct(
+        private ThrottleStockApiRequestService $throttle,
+        private InvalidatePortfolioAsOfViewsService $invalidatePortfolioAsOfViewsService,
+    ) {}
+
+    public function lastProviderRequestId(): ?int
+    {
+        return $this->lastProviderRequestId;
+    }
     /**
      * Provider fallback order for closing prices.
      *
@@ -24,11 +37,21 @@ class ResolveIsinClosingPriceService
      */
     public static function providerOrder(): array
     {
+        // Paid EODHD plan is the only active source. Other providers remain in codebase
+        // but are not called from the default chain.
         return [
-            StockApiService::PROVIDER_ALPHAVANTAGE,
-            StockApiService::PROVIDER_FMP,
-            StockApiService::PROVIDER_FINNHUB,
+            StockApiService::PROVIDER_EODHD,
         ];
+    }
+
+    /**
+     * Providers that may be read from isin_quotes cache for a closing date.
+     *
+     * @return list<string>
+     */
+    public static function cacheProviderOrder(string $closingDate): array
+    {
+        return self::providerOrder();
     }
 
     /**
@@ -64,17 +87,39 @@ class ResolveIsinClosingPriceService
         $isin = strtoupper(trim($isin));
         $from = $fromDate->copy()->setTimezone('UTC')->startOfDay();
         $to = $toDate->copy()->setTimezone('UTC')->startOfDay();
+        $this->lastProviderRequestId = null;
 
         if (!$bypassCache) {
             $exact = $this->cachedQuoteOnDate($isin, $to->toDateString(), $provider);
             if ($exact !== null) {
+                $this->ensureIsinPersistedFromQuote($isin, $exact);
+
                 return $exact;
+            }
+
+            $cachedInRange = $this->cachedLatestInRange(
+                $isin,
+                $from->toDateString(),
+                $to->toDateString(),
+                $provider,
+            );
+            if ($cachedInRange !== null) {
+                $this->ensureIsinPersistedFromQuote($isin, $cachedInRange);
+
+                return $cachedInRange;
             }
         }
 
         $stockExchange = null;
         if ($forcedSymbol !== null && $forcedSymbol !== '') {
             $symbol = strtoupper($forcedSymbol);
+            $this->persistResolvedIsin(
+                isin: $isin,
+                symbol: $symbol,
+                description: null,
+                type: null,
+                displaySymbol: null,
+            );
         } else {
             $resolvedSymbol = $this->resolveSymbol($isin);
             if ($resolvedSymbol === null) {
@@ -92,6 +137,38 @@ class ResolveIsinClosingPriceService
             : self::providerOrder();
 
         foreach ($providers as $providerName) {
+            if ($providerName === StockApiService::PROVIDER_FINNHUB
+                && $to->toDateString() < Carbon::yesterday('UTC')->toDateString()
+            ) {
+                $this->logTickerRequest(
+                    isin: $isin,
+                    tickerSymbol: $symbol,
+                    closingDate: $to->toDateString(),
+                    provider: $providerName,
+                    stockExchange: $stockExchange,
+                    response: null,
+                    errorMessage: 'Finnhub skipped for historical closing date (live quote only)',
+                    httpStatus: null,
+                    success: false,
+                );
+                continue;
+            }
+
+            if ($this->throttle->isInCooldown($providerName)) {
+                $this->logTickerRequest(
+                    isin: $isin,
+                    tickerSymbol: $symbol,
+                    closingDate: $to->toDateString(),
+                    provider: $providerName,
+                    stockExchange: $stockExchange,
+                    response: null,
+                    errorMessage: "Provider {$providerName} is in rate-limit cooldown",
+                    httpStatus: null,
+                    success: false,
+                );
+                continue;
+            }
+
             $providerInstance = $this->tryCreateProvider($providerName);
             if ($providerInstance === null) {
                 $this->logTickerRequest(
@@ -108,7 +185,11 @@ class ResolveIsinClosingPriceService
                 continue;
             }
 
-            $result = $providerInstance->fetchCandleData($symbol, $fromTimestamp, $toTimestamp, 'D');
+            $result = $this->throttle->execute(
+                $providerName,
+                $symbol,
+                fn () => $providerInstance->fetchCandleData($symbol, $fromTimestamp, $toTimestamp, 'D'),
+            );
 
             $tickerRequest = $this->logTickerRequest(
                 isin: $isin,
@@ -125,6 +206,8 @@ class ResolveIsinClosingPriceService
             if (!$result->success || $result->candle === null || empty($result->candle->closePrices)) {
                 continue;
             }
+
+            $this->lastProviderRequestId = $result->providerRequestId;
 
             $this->persistNewClosingPricesFromCandle(
                 isin: $isin,
@@ -145,6 +228,16 @@ class ResolveIsinClosingPriceService
             if ($exact !== null) {
                 return $exact;
             }
+
+            $fromCandle = $this->cachedLatestInRange(
+                $isin,
+                $from->toDateString(),
+                $to->toDateString(),
+                $providerName,
+            );
+            if ($fromCandle !== null) {
+                return $fromCandle;
+            }
         }
 
         if (!$bypassCache) {
@@ -163,9 +256,15 @@ class ResolveIsinClosingPriceService
     {
         $providers = $provider !== null
             ? [strtolower($provider)]
-            : self::providerOrder();
+            : self::cacheProviderOrder($closingDate);
 
         foreach ($providers as $preferredProvider) {
+            if ($preferredProvider === StockApiService::PROVIDER_FINNHUB
+                && $closingDate < Carbon::yesterday('UTC')->toDateString()
+            ) {
+                continue;
+            }
+
             $cached = IsinQuote::query()
                 ->where('isin', $isin)
                 ->where('provider', $preferredProvider)
@@ -189,16 +288,27 @@ class ResolveIsinClosingPriceService
     ): ?IsinQuote {
         $providers = $provider !== null
             ? [strtolower($provider)]
-            : self::providerOrder();
+            : self::cacheProviderOrder($toDate);
 
         foreach ($providers as $preferredProvider) {
-            $cached = IsinQuote::query()
+            if ($preferredProvider === StockApiService::PROVIDER_FINNHUB
+                && $toDate < Carbon::yesterday('UTC')->toDateString()
+            ) {
+                continue;
+            }
+
+            $query = IsinQuote::query()
                 ->where('isin', $isin)
                 ->where('provider', $preferredProvider)
                 ->whereBetween('closing_date', [$fromDate, $toDate])
                 ->whereNotNull('close_price_min_unit')
-                ->orderByDesc('closing_date')
-                ->first();
+                ->orderByDesc('closing_date');
+
+            if ($preferredProvider === StockApiService::PROVIDER_FINNHUB) {
+                $query->whereDate('closing_date', '>=', Carbon::yesterday('UTC')->toDateString());
+            }
+
+            $cached = $query->first();
 
             if ($cached !== null) {
                 return $cached;
@@ -219,6 +329,8 @@ class ResolveIsinClosingPriceService
         StockCandleDTO $candle,
         int $tickerRequestId,
     ): void {
+        $newlyPersistedDates = [];
+
         foreach ($candle->timestamps as $index => $timestamp) {
             $closingDate = Carbon::createFromTimestamp((int) $timestamp, 'UTC')->toDateString();
 
@@ -228,7 +340,7 @@ class ResolveIsinClosingPriceService
             $low = $candle->lowPrices[$index] ?? null;
             $volume = $candle->volumes[$index] ?? null;
 
-            IsinQuote::query()->firstOrCreate(
+            $quote = IsinQuote::query()->firstOrCreate(
                 [
                     'isin' => $isin,
                     'closing_date' => $closingDate,
@@ -246,6 +358,14 @@ class ResolveIsinClosingPriceService
                     'ticker_request_id' => $tickerRequestId,
                 ]
             );
+
+            if ($quote->wasRecentlyCreated) {
+                $newlyPersistedDates[] = $closingDate;
+            }
+        }
+
+        if ($newlyPersistedDates !== []) {
+            $this->invalidatePortfolioAsOfViewsService->forClosingDates($newlyPersistedDates);
         }
     }
 
@@ -267,15 +387,21 @@ class ResolveIsinClosingPriceService
         $providers = $preferredProvider !== null
             ? array_values(array_unique([$preferredProvider, ...self::providerOrder()]))
             : self::providerOrder();
+        $finnhubMinDate = Carbon::yesterday('UTC')->toDateString();
 
         foreach ($providers as $providerName) {
-            $quote = IsinQuote::query()
+            $query = IsinQuote::query()
                 ->where('isin', $isin)
                 ->where('provider', $providerName)
                 ->where('closing_date', '<', $beforeClosingDate)
                 ->whereNotNull('close_price_min_unit')
-                ->orderByDesc('closing_date')
-                ->first();
+                ->orderByDesc('closing_date');
+
+            if ($providerName === StockApiService::PROVIDER_FINNHUB) {
+                $query->whereDate('closing_date', '>=', $finnhubMinDate);
+            }
+
+            $quote = $query->first();
 
             if ($quote !== null) {
                 return $quote;
@@ -286,6 +412,10 @@ class ResolveIsinClosingPriceService
             ->where('isin', $isin)
             ->where('closing_date', '<', $beforeClosingDate)
             ->whereNotNull('close_price_min_unit')
+            ->where(function ($query) use ($finnhubMinDate) {
+                $query->where('provider', '!=', StockApiService::PROVIDER_FINNHUB)
+                    ->orWhereDate('closing_date', '>=', $finnhubMinDate);
+            })
             ->orderByDesc('closing_date')
             ->first();
     }
@@ -308,10 +438,13 @@ class ResolveIsinClosingPriceService
     private function resolveSymbol(string $isin): ?array
     {
         $local = Isin::query()->where('isin', $isin)->first();
-        if ($local !== null && $local->symbol !== '') {
+        // EODHD needs SYMBOL.EXCHANGE; bare tickers from older rows are not enough.
+        if ($local !== null && $local->symbol !== '' && str_contains($local->symbol, '.')) {
+            $parts = explode('.', $local->symbol, 2);
+
             return [
-                'symbol' => $local->symbol,
-                'stock_exchange' => null,
+                'symbol' => strtoupper($local->symbol),
+                'stock_exchange' => $parts[1] ?? null,
             ];
         }
 
@@ -337,7 +470,7 @@ class ResolveIsinClosingPriceService
             }
 
             try {
-                if ($provider instanceof FmpProvider) {
+                if ($provider instanceof EodhdProvider || $provider instanceof FmpProvider) {
                     $withExchange = $provider->searchByIsinWithExchange($isin);
                     $this->logTickerRequest(
                         isin: $isin,
@@ -351,13 +484,25 @@ class ResolveIsinClosingPriceService
                         success: $withExchange !== null,
                     );
                     if ($withExchange !== null) {
-                        return $withExchange;
+                        $this->persistResolvedIsin(
+                            isin: $isin,
+                            symbol: $withExchange['symbol'],
+                            description: $withExchange['name'] ?? null,
+                            type: $withExchange['type'] ?? null,
+                            displaySymbol: $withExchange['code'] ?? null,
+                        );
+
+                        return [
+                            'symbol' => $withExchange['symbol'],
+                            'stock_exchange' => $withExchange['stock_exchange'] ?? null,
+                        ];
                     }
                     continue;
                 }
 
                 $search = $provider->searchByIsin($isin);
-                $symbol = $search?->results[0]->symbol ?? null;
+                $first = $search?->results[0] ?? null;
+                $symbol = $first?->symbol ?? null;
                 $this->logTickerRequest(
                     isin: $isin,
                     tickerSymbol: $symbol,
@@ -370,6 +515,14 @@ class ResolveIsinClosingPriceService
                     success: $symbol !== null && $symbol !== '',
                 );
                 if ($symbol) {
+                    $this->persistResolvedIsin(
+                        isin: $isin,
+                        symbol: $symbol,
+                        description: $first?->description,
+                        type: $first?->type,
+                        displaySymbol: $first?->displaySymbol,
+                    );
+
                     return [
                         'symbol' => $symbol,
                         'stock_exchange' => null,
@@ -407,10 +560,81 @@ class ResolveIsinClosingPriceService
         return null;
     }
 
+    private function persistResolvedIsin(
+        string $isin,
+        string $symbol,
+        ?string $description,
+        ?string $type,
+        ?string $displaySymbol,
+    ): void {
+        $symbol = strtoupper(trim($symbol));
+        if ($symbol === '') {
+            return;
+        }
+
+        $display = $displaySymbol !== null && $displaySymbol !== ''
+            ? strtoupper(trim($displaySymbol))
+            : (str_contains($symbol, '.') ? explode('.', $symbol, 2)[0] : $symbol);
+
+        $existing = Isin::query()->where('isin', strtoupper(trim($isin)))->first();
+        $hasUsableLocal = $existing !== null
+            && $existing->symbol !== ''
+            && str_contains((string) $existing->symbol, '.');
+
+        // Keep a richer description/type already stored; only fill blanks / upgrade bare tickers.
+        Isin::query()->updateOrCreate(
+            ['isin' => strtoupper(trim($isin))],
+            [
+                'symbol' => $symbol,
+                'description' => ($description !== null && $description !== '')
+                    ? $description
+                    : ($existing?->description ?: $symbol),
+                'type' => ($type !== null && $type !== '')
+                    ? $type
+                    : ($existing?->type ?: 'Common Stock'),
+                'display_symbol' => $display !== ''
+                    ? $display
+                    : ($existing?->display_symbol ?: $display),
+            ],
+        );
+
+        if (!$hasUsableLocal) {
+            Log::info("ResolveIsinClosingPriceService: persisted ISIN {$isin} as {$symbol}");
+        }
+    }
+
+    private function ensureIsinPersistedFromQuote(string $isin, IsinQuote $quote): void
+    {
+        $existing = Isin::query()->where('isin', $isin)->first();
+        if ($existing !== null && $existing->symbol !== '' && str_contains((string) $existing->symbol, '.')) {
+            return;
+        }
+
+        // Prefer provider metadata (name/type) when the isins row is missing or incomplete.
+        if ($this->resolveSymbol($isin) !== null) {
+            return;
+        }
+
+        $symbol = $quote->ticker_symbol;
+        if ($symbol === null || $symbol === '') {
+            return;
+        }
+
+        $this->persistResolvedIsin(
+            isin: $isin,
+            symbol: (string) $symbol,
+            description: null,
+            type: null,
+            displaySymbol: null,
+        );
+    }
+
     private function tryCreateProvider(string $providerName): ?StockApiProviderInterface
     {
         try {
             return match (strtolower($providerName)) {
+                StockApiService::PROVIDER_EODHD => new EodhdProvider(),
+                // Kept for manual/debug; not in providerOrder().
                 StockApiService::PROVIDER_FINNHUB => new FinnhubProvider(),
                 StockApiService::PROVIDER_FMP => new FmpProvider(),
                 StockApiService::PROVIDER_ALPHAVANTAGE => new AlphaVantageProvider(),

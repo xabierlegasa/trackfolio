@@ -1,0 +1,41 @@
+---
+description: DDD layering and bounded contexts for Trackfolio API
+globs: "**/*.php"
+alwaysApply: false
+---
+
+# DDD architecture
+
+Place new PHP under `app/{BoundedContext}/{Layer}/`. Contexts: `Auth`, `User`, `DegiroTransaction`, `AccountStatement`, `Portfolio`, `Isin`, `ExchangeRate`, `TaxReturn`, `GlobalConfig`.
+
+## Responsibilities
+
+- **Controller** (Infrastructure): auth, request validation, HTTP status, JSON mapping. No business rules, no Eloquent `::where`.
+- **UseCase** (Application): one `execute(...)` per application action. Orchestrates domain services. Returns a DTO or throws a domain exception.
+- **Domain service**: rules and calculations. No `Request`, `JsonResponse`, or route knowledge.
+- **Repository**: the only place for SQL/Eloquent query building for that context’s tables.
+- **Entity**: table mapping + casts. Keep invariants here when they are local to the row.
+- **DTO**: `readonly` constructor props. No Eloquent.
+
+## Dependency direction
+
+Domain must not import `Infrastructure\Controllers` or `Illuminate\Http\*`.
+
+```php
+// ❌ BAD — logic in the controller
+public function index(Request $request): JsonResponse {
+    $rows = DegiroTransaction::where('user_id', Auth::id())->get();
+    $total = $rows->sum(fn ($t) => $t->quantity * $t->price);
+    return response()->json(['total' => $total]);
+}
+
+// ✅ GOOD
+public function index(Request $request): JsonResponse {
+    $view = $this->buildPortfolioStatsAsOfService->build((int) Auth::id(), $asOf);
+    return response()->json($this->presenter->fromView($view));
+}
+```
+
+If a class in `Domain/Service` is doing HTTP, pagination, or JSON shaping, move that to Infrastructure or Application.
+
+Cross-context: depend on another context’s **Domain** service/entity, never its Controller.

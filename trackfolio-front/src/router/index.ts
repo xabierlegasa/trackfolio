@@ -4,11 +4,15 @@ import Login from '../views/Login.vue'
 import Dashboard from '../views/Dashboard.vue'
 import Account from '../views/Account.vue'
 import UploadDegiroTransactions from '../views/UploadDegiroTransactions.vue'
+import UploadAccountStatements from '../views/UploadAccountStatements.vue'
 import DegiroTransactionsList from '../views/DegiroTransactionsList.vue'
 import Statistics from '../views/Statistics.vue'
 import Configuration from '../views/Configuration.vue'
 import TaxReturnYears from '../views/TaxReturnYears.vue'
 import TaxReturnYearDetail from '../views/TaxReturnYearDetail.vue'
+import Admin from '../views/Admin.vue'
+import AdminSnapshotCalculationProcessDetail from '../views/AdminSnapshotCalculationProcessDetail.vue'
+import AdminProviderRequestDetail from '../views/AdminProviderRequestDetail.vue'
 import { useUserStore } from '../stores/userStore'
 
 const router = createRouter({
@@ -53,6 +57,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/upload-account-statements',
+      name: 'upload-account-statements',
+      component: UploadAccountStatements,
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/degiro-transactions',
       name: 'degiro-transactions-list',
       component: DegiroTransactionsList,
@@ -91,6 +101,24 @@ const router = createRouter({
       component: TaxReturnYearDetail,
       props: true,
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: Admin,
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/snapshot-calculation-processes/:processId',
+      name: 'admin-snapshot-calculation-process',
+      component: AdminSnapshotCalculationProcessDetail,
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/provider-requests/:providerRequestId',
+      name: 'admin-provider-request',
+      component: AdminProviderRequestDetail,
+      meta: { requiresAuth: true, requiresAdmin: true }
     }
   ]
 })
@@ -98,7 +126,7 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const userStore = useUserStore()
 
-  if (to.meta.requiresAuth) {
+  if (to.meta.requiresAuth || to.meta.requiresAdmin) {
     if (!userStore.account) {
       try {
         await userStore.fetchAccount()
@@ -106,6 +134,10 @@ router.beforeEach(async (to) => {
         return { name: 'login', query: { redirect: to.fullPath } }
       }
     }
+  }
+
+  if (to.meta.requiresAdmin && !userStore.account?.is_admin) {
+    return { name: 'dashboard' }
   }
 
   return true

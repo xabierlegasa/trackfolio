@@ -32,6 +32,7 @@ export interface LoginResponse {
 export interface AccountResponse {
   email: string
   name: string
+  is_admin: boolean
 }
 
 export interface DegiroTransactionsCountResponse {
@@ -59,6 +60,13 @@ export interface UploadDegiroTransactionsResponse {
   ignored_count: number
   skipped_count: number
   skipped_rows: UploadDegiroTransactionsSkippedRow[]
+}
+
+export interface UploadAccountStatementsResponse {
+  message: string
+  count: number
+  new_count: number
+  ignored_count: number
 }
 
 export interface UploadDegiroTransactionsErrorResponse {
@@ -136,10 +144,11 @@ export interface PortfolioStatsResponse {
   sort_order?: 'asc' | 'desc'
   usd_to_eur_rate?: number | null
   usd_to_eur_rate_date?: string | null
+  as_of_date?: string | null
   last_us_market_open_date?: string | null
   total_market_value_min_unit?: number | null
   total_market_value_eur_min_unit?: number | null
-  leverage_eur_min_unit?: number
+  cash_eur_min_unit?: number
   net_market_value_eur_min_unit?: number | null
   day_change_eur_min_unit?: number | null
   total_gain_loss_eur_min_unit?: number | null
@@ -149,27 +158,19 @@ export interface PortfolioDailySnapshot {
   snapshot_date: string
   balance_eur_min_unit: number
   portfolio_eur_min_unit: number
-  leverage_eur_min_unit: number
+  cash_eur_min_unit: number
   day_change_eur_min_unit: number | null
   total_gain_loss_eur_min_unit: number | null
+  period?: string
 }
 
 export interface PortfolioEvolutionResponse {
+  granularity: 'day' | 'month' | 'year'
+  year: number
+  years: number[]
   from: string
   to: string
-  months: number
   data: PortfolioDailySnapshot[]
-}
-
-export interface UserLeverageHistoryItem {
-  id: number
-  amount_eur_min_unit: number
-  recorded_at: string
-}
-
-export interface UserLeverageResponse {
-  amount_eur_min_unit: number
-  history: UserLeverageHistoryItem[]
 }
 
 export interface Trade {
@@ -303,18 +304,6 @@ export const authService = {
     return response.data
   },
 
-  async getLeverage(): Promise<UserLeverageResponse> {
-    const response = await apiClient.get<UserLeverageResponse>('/api/leverage')
-    return response.data
-  },
-
-  async saveLeverage(amountEurMinUnit: number): Promise<void> {
-    await this.getCsrfCookie()
-    await apiClient.post('/api/leverage', {
-      amount_eur_min_unit: amountEurMinUnit,
-    })
-  },
-
   async getDegiroTransactionsCount(): Promise<DegiroTransactionsCountResponse> {
     const response = await apiClient.get<DegiroTransactionsCountResponse>('/api/degiro-transactions/count')
     return response.data
@@ -343,6 +332,18 @@ export const authService = {
     return response.data
   },
 
+  async uploadAccountStatements(file: File): Promise<UploadAccountStatementsResponse> {
+    await this.getCsrfCookie()
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await apiClient.post<UploadAccountStatementsResponse>('/api/upload-account-statements', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  },
+
   async getDegiroTransactions(
     perPage: number = 10,
     page: number = 1,
@@ -366,24 +367,41 @@ export const authService = {
     perPage: number = 10,
     page: number = 1,
     sortBy: string = 'weight',
-    sortOrder: 'asc' | 'desc' = 'desc'
+    sortOrder: 'asc' | 'desc' = 'desc',
+    asOf?: string | null
   ): Promise<PortfolioStatsResponse> {
+    const params: Record<string, string | number> = {
+      per_page: perPage,
+      page: page,
+      sort_by: sortBy,
+      sort_order: sortOrder,
+    }
+    if (asOf) {
+      params.as_of = asOf
+    }
     const response = await apiClient.get<PortfolioStatsResponse>('/api/portfolio-stats', {
-      params: {
-        per_page: perPage,
-        page: page,
-        sort_by: sortBy,
-        sort_order: sortOrder,
-      }
+      params,
     })
     return response.data
   },
 
-  async getPortfolioEvolution(months: number = 3): Promise<PortfolioEvolutionResponse> {
+  async getPortfolioEvolution(
+    year?: number,
+    granularity: 'day' | 'month' | 'year' = 'day',
+  ): Promise<PortfolioEvolutionResponse> {
+    const params: Record<string, string | number> = { granularity }
+    if (granularity === 'day' && year != null) {
+      params.year = year
+    }
     const response = await apiClient.get<PortfolioEvolutionResponse>('/api/portfolio-evolution', {
-      params: { months },
+      params,
     })
     return response.data
+  },
+
+  async recalculatePortfolioEvolution(): Promise<void> {
+    await this.getCsrfCookie()
+    await apiClient.post('/api/portfolio-evolution/recalculate')
   },
 
   async getTrades(

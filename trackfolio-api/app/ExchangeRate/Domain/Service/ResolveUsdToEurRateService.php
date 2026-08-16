@@ -37,6 +37,61 @@ class ResolveUsdToEurRateService
     }
 
     /**
+     * USD → EUR stored on or before $rateDate. Does not call the live FX API for historical dates.
+     *
+     * @return array{rate: float, rate_date: string}|null
+     */
+    public function resolveOnOrBefore(string $rateDate): ?array
+    {
+        $today = Carbon::today()->toDateString();
+        if ($rateDate === $today) {
+            return $this->resolveToday();
+        }
+
+        $exact = ExchangeRate::query()
+            ->whereDate('rate_date', $rateDate)
+            ->where('base_currency', 'USD')
+            ->where('quote_currency', 'EUR')
+            ->first();
+
+        if ($exact !== null && (float) $exact->rate > 0) {
+            return [
+                'rate' => (float) $exact->rate,
+                'rate_date' => $this->asOfDateFromRow($exact),
+            ];
+        }
+
+        $latestBefore = ExchangeRate::query()
+            ->where('base_currency', 'USD')
+            ->where('quote_currency', 'EUR')
+            ->whereDate('rate_date', '<=', $rateDate)
+            ->orderByDesc('rate_date')
+            ->first();
+
+        if ($latestBefore !== null && (float) $latestBefore->rate > 0) {
+            return [
+                'rate' => (float) $latestBefore->rate,
+                'rate_date' => $this->asOfDateFromRow($latestBefore),
+            ];
+        }
+
+        $any = ExchangeRate::query()
+            ->where('base_currency', 'USD')
+            ->where('quote_currency', 'EUR')
+            ->orderByDesc('rate_date')
+            ->first();
+
+        if ($any !== null && (float) $any->rate > 0) {
+            return [
+                'rate' => (float) $any->rate,
+                'rate_date' => $this->asOfDateFromRow($any),
+            ];
+        }
+
+        return null;
+    }
+
+    /**
      * USD → EUR rate for today. Uses DB cache; fetches open.er-api when missing.
      */
     public function forToday(): ?float

@@ -75,12 +75,6 @@
         </div>
       </div>
     </div>
-
-    <div class="mt-6">
-      <RouterLink :to="{ name: 'dashboard' }" class="btn btn-ghost">
-        {{ $t('common.backToDashboard') }}
-      </RouterLink>
-    </div>
   </div>
 </template>
 

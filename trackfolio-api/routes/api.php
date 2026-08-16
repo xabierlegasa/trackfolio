@@ -1,5 +1,9 @@
 <?php
 
+use App\AccountStatement\Infrastructure\Controllers\UploadAccountStatementsController;
+use App\Admin\Infrastructure\Controllers\ListSnapshotCalculationProcessLogsController;
+use App\Admin\Infrastructure\Controllers\ListSnapshotCalculationProcessesController;
+use App\Admin\Infrastructure\Controllers\ShowProviderRequestController;
 use App\Auth\Controllers\AuthController;
 use App\DegiroTransaction\Infrastructure\Controllers\DeleteAllDegiroTransactionsController;
 use App\DegiroTransaction\Infrastructure\Controllers\ListDegiroTransactionsController;
@@ -10,11 +14,11 @@ use App\DegiroTransaction\Infrastructure\Controllers\UploadDegiroTransactionCont
 use App\Dummy\Controllers\DummyController;
 use App\Isin\Infrastructure\Controllers\StockCandleController;
 use App\Portfolio\Infrastructure\Controllers\PortfolioEvolutionController;
+use App\Portfolio\Infrastructure\Controllers\StartRecalculateEvolutionController;
 use App\TaxReturn\Infrastructure\Controllers\TaxReturnYearAuditController;
 use App\TaxReturn\Infrastructure\Controllers\TaxReturnYearDetailController;
 use App\TaxReturn\Infrastructure\Controllers\TaxReturnYearsController;
 use App\User\Controllers\UserController;
-use App\User\Controllers\UserLeverageController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -40,17 +44,17 @@ Route::middleware('auth:sanctum')->group(function () {
     // Account routes
     Route::get('/account', [UserController::class, 'account']);
     Route::get('/degiro-transactions/count', [UserController::class, 'degiroTransactionsCount']);
-    Route::get('/leverage', [UserLeverageController::class, 'show']);
-    Route::post('/leverage', [UserLeverageController::class, 'store']);
 
     // Degiro Transaction routes
     Route::post('/upload-degiro-transactions', [UploadDegiroTransactionController::class, 'upload']);
+    Route::post('/upload-account-statements', [UploadAccountStatementsController::class, 'upload']);
     Route::get('/degiro-transactions', [ListDegiroTransactionsController::class, 'index']);
     Route::delete('/degiro-transactions', [DeleteAllDegiroTransactionsController::class, 'destroy']);
 
     // Portfolio Statistics routes
     Route::get('/portfolio-stats', [PortfolioStatsController::class, 'index']);
     Route::get('/portfolio-evolution', [PortfolioEvolutionController::class, 'index']);
+    Route::post('/portfolio-evolution/recalculate', [StartRecalculateEvolutionController::class, 'store']);
 
     // Trades routes
     Route::get('/trades', [TradesController::class, 'index']);
@@ -59,4 +63,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tax-return/years', [TaxReturnYearsController::class, 'index']);
     Route::get('/tax-return/{year}/audit/{isin}', [TaxReturnYearAuditController::class, 'show']);
     Route::get('/tax-return/{year}', [TaxReturnYearDetailController::class, 'show']);
+
+    Route::middleware('admin')->prefix('admin')->group(function () {
+        Route::get('/snapshot-calculation-processes', [ListSnapshotCalculationProcessesController::class, 'index']);
+        Route::get('/snapshot-calculation-processes/{processId}/logs', [ListSnapshotCalculationProcessLogsController::class, 'index']);
+        Route::get('/provider-requests/{providerRequestId}', [ShowProviderRequestController::class, 'show']);
+    });
 });

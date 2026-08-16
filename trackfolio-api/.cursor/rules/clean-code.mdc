@@ -1,0 +1,36 @@
+---
+description: Clean code standards for Trackfolio API PHP
+globs: "**/*.php"
+alwaysApply: false
+---
+
+# Clean code
+
+- **One class, one reason to change.** If a service both fetches APIs and renders HTTP, split it.
+- **Small methods.** If a method needs comments to explain steps, extract named private methods.
+- **Name after the business.** `resolveForD1`, `ensureForDate`, `marketStatusOn` — not `handle()`, `process()`, `doStuff()`.
+- **Fail with meaning.** Domain `Exception` or a result DTO (`success`, `message`, `errors`). Controllers map those to 4xx/5xx. No empty `catch`.
+- **No dead code** (`@deprecated` only when a caller still exists; otherwise delete).
+- **Do not log secrets** (API tokens, passwords). Log endpoint name + status, never the full URL with `token=`.
+- **Do not add comments that repeat the code.** Comments only for non-obvious invariants (e.g. Degiro dates are `d-m-Y`).
+
+```php
+// ❌ BAD
+public function run($d) {
+    try {
+        return $this->x($d);
+    } catch (\Throwable $e) {}
+}
+
+// ✅ GOOD
+public function resolveOnOrBefore(string $rateDate): ?array
+{
+    $row = $this->exchangeRates->latestUsdEurOnOrBefore($rateDate);
+    if ($row === null) {
+        return null;
+    }
+    return ['rate' => (float) $row->rate, 'rate_date' => $row->rate_date->toDateString()];
+}
+```
+
+Extract a new class when a file exceeds ~250 lines of mixed concerns (HTTP + SQL + providers). Prefer that over adding a 15th private method to a controller.

@@ -7,9 +7,15 @@ return [
     |--------------------------------------------------------------------------
     |
     | API keys for each provider. These should be set in your .env file.
-    | The active provider is chosen per request (defaults to finnhub in code).
+    | Active closing-price provider order is EODHD-only (see ResolveIsinClosingPriceService).
+    | Other providers remain configured for manual/debug use.
     |
     */
+
+    'eodhd' => [
+        'api_token' => env('EODHD_API_TOKEN'),
+        'base_url' => env('EODHD_BASE_URL', 'https://eodhd.com/api'),
+    ],
 
     'finnhub' => [
         'api_key' => env('FINNHUB_API_KEY'),

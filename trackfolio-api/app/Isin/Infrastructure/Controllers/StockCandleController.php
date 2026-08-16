@@ -24,8 +24,8 @@ class StockCandleController extends Controller
      * - date (optional): Date in YYYY-MM-DD format. Defaults to today.
      * - from (optional): Unix timestamp for start time. If provided, overrides date.
      * - to (optional): Unix timestamp for end time. If provided, overrides date.
-     * - provider (optional): Provider to use ('finnhub', 'fmp', or 'alphavantage').
-     *   If omitted, providers are tried with fallback (finnhub → fmp → alphavantage).
+     * - provider (optional): Provider to use ('eodhd', 'finnhub', 'fmp', or 'alphavantage').
+     *   If omitted, uses the active provider order (EODHD only).
      *
      * @param Request $request
      * @return JsonResponse
@@ -42,9 +42,15 @@ class StockCandleController extends Controller
 
         // Get provider from request (optional; null = fallback chain)
         $provider = $request->get('provider');
-        if ($provider !== null && !in_array($provider, [StockApiService::PROVIDER_FINNHUB, StockApiService::PROVIDER_FMP, StockApiService::PROVIDER_ALPHAVANTAGE])) {
+        $allowedProviders = [
+            StockApiService::PROVIDER_EODHD,
+            StockApiService::PROVIDER_FINNHUB,
+            StockApiService::PROVIDER_FMP,
+            StockApiService::PROVIDER_ALPHAVANTAGE,
+        ];
+        if ($provider !== null && !in_array($provider, $allowedProviders, true)) {
             return response()->json([
-                'error' => 'Invalid provider. Available: ' . StockApiService::PROVIDER_FINNHUB . ', ' . StockApiService::PROVIDER_FMP . ', ' . StockApiService::PROVIDER_ALPHAVANTAGE
+                'error' => 'Invalid provider. Available: ' . implode(', ', $allowedProviders),
             ], 400);
         }
 

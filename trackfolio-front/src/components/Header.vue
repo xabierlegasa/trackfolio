@@ -14,9 +14,18 @@
           </RouterLink>
         </template>
         <template v-else>
-          <RouterLink to="/account" class="link link-hover font-semibold">
-            {{ userStore.account.name }}
-          </RouterLink>
+          <div class="flex items-center gap-3">
+            <RouterLink to="/account" class="link link-hover font-semibold">
+              {{ userStore.account.name }}
+            </RouterLink>
+            <RouterLink
+              v-if="userStore.account.is_admin"
+              to="/admin"
+              class="link link-primary link-hover text-sm font-semibold"
+            >
+              Admin
+            </RouterLink>
+          </div>
         </template>
         <select 
           v-model="selectedLocale" 

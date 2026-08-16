@@ -18,9 +18,10 @@ class PortfolioDailySnapshot extends Model
         'snapshot_date',
         'balance_eur_min_unit',
         'portfolio_eur_min_unit',
-        'leverage_eur_min_unit',
+        'cash_eur_min_unit',
         'day_change_eur_min_unit',
         'total_gain_loss_eur_min_unit',
+        'view_payload',
     ];
 
     /**
@@ -30,9 +31,10 @@ class PortfolioDailySnapshot extends Model
         'snapshot_date' => 'date',
         'balance_eur_min_unit' => 'integer',
         'portfolio_eur_min_unit' => 'integer',
-        'leverage_eur_min_unit' => 'integer',
+        'cash_eur_min_unit' => 'integer',
         'day_change_eur_min_unit' => 'integer',
         'total_gain_loss_eur_min_unit' => 'integer',
+        'view_payload' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

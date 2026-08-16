@@ -1,0 +1,26 @@
+---
+description: PHP 8.4 and Laravel 12 conventions for Trackfolio API
+globs: "**/*.php"
+alwaysApply: false
+---
+
+# PHP / Laravel
+
+- PHP **8.4**, Laravel **12**. Constructor property promotion. Typed parameters and return types on all new methods. `strict` shapes in `@param`/`@return` for arrays.
+- Money and prices: `int` **min units (cents)**. Convert at the edge (`priceToMinUnit`). Never accumulate money in `float`.
+- Inject collaborators via the constructor. Do not `new FinnhubProvider()` inside a loop if the key can be missing — resolve once, treat as optional port.
+- JSON APIs: `JsonResponse` with explicit status (400 validation/domain, 401/403 auth, 422 CSV, 201 create).
+- Form request classes live in the context (`Auth/Request`), not a global dump, when validation is more than 2–3 rules.
+- Migrations: one change per file, descriptive name. Do not edit old migrations that already ran.
+- Config and secrets: `config/*.php` + `env()`. Never hardcode API keys.
+- Cache keys: explicit prefixes (`portfolio_as_of_view:{userId}:{date}`). Historical market views are immutable once stored — do not refetch providers.
+
+```php
+// ❌ BAD
+$total = (float) $row->price * $qty;
+
+// ✅ GOOD
+$marketValueMinUnit = (int) round($closeCents * $quantity);
+```
+
+Routes stay in `routes/api.php` (thin). Controllers stay in the bounded context `Infrastructure/Controllers`.

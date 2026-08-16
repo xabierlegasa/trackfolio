@@ -153,9 +153,11 @@ class DegiroTransactionRepository
      *
      * @return \Illuminate\Support\Collection<int, object{isin: string, quantity: float, product: string}>
      */
-    public function getAllPortfolioHoldings(int $userId)
+    public function getAllPortfolioHoldings(int $userId, ?string $asOfDate = null)
     {
-        $holdings = DegiroTransaction::where('user_id', $userId)
+        $holdingsQuery = DegiroTransaction::where('user_id', $userId);
+        $this->constrainToAsOfDate($holdingsQuery, $asOfDate);
+        $holdings = $holdingsQuery
             ->selectRaw('isin, SUM(quantity) as quantity')
             ->groupBy('isin')
             ->havingRaw('SUM(quantity) != 0')
@@ -164,10 +166,13 @@ class DegiroTransactionRepository
         $isins = $holdings->pluck('isin')->all();
         $latestProducts = collect();
         if ($isins !== []) {
-            $latestProducts = DegiroTransaction::where('user_id', $userId)
-                ->whereIn('isin', $isins)
+            $productsQuery = DegiroTransaction::where('user_id', $userId)
+                ->whereIn('isin', $isins);
+            $this->constrainToAsOfDate($productsQuery, $asOfDate);
+            $latestProducts = $productsQuery
                 ->select('isin', 'product', 'id')
-                ->orderBy('id', 'desc')
+                ->orderByRaw("STR_TO_DATE(`date`, '%d-%m-%Y') desc")
+                ->orderByDesc('id')
                 ->get()
                 ->groupBy('isin')
                 ->map(fn ($transactions) => (string) ($transactions->first()->product ?? ''));
@@ -200,12 +205,16 @@ class DegiroTransactionRepository
      * Remaining cost basis (cents) for an open ISIN position using average-cost on sells.
      * Price comes from price_ten_thousandths (converted to cents).
      */
-    public function getOpenPositionCostMinUnit(int $userId, string $isin): ?int
+    public function getOpenPositionCostMinUnit(int $userId, string $isin, ?string $asOfDate = null): ?int
     {
         $rows = DegiroTransaction::query()
             ->where('user_id', $userId)
             ->where('isin', $isin)
             ->get(['id', 'date', 'time', 'quantity', 'price_ten_thousandths']);
+
+        if ($asOfDate !== null) {
+            $rows = $rows->filter(fn (DegiroTransaction $t) => $this->transactionDateYmd($t) <= $asOfDate);
+        }
 
         if ($rows->isEmpty()) {
             return null;
@@ -341,10 +350,11 @@ class DegiroTransactionRepository
      * Get trades summary for a user.
      * Returns sum of positive trades, sum of negative trades, and the difference.
      */
-    public function getTradesSummary(int $userId): array
+    public function getTradesSummary(int $userId, ?string $asOfDate = null): array
     {
-        // Get aggregated trades grouped by ISIN where total quantity = 0 (completely closed)
-        $trades = DegiroTransaction::where('user_id', $userId)
+        $tradesQuery = DegiroTransaction::where('user_id', $userId);
+        $this->constrainToAsOfDate($tradesQuery, $asOfDate);
+        $trades = $tradesQuery
             ->selectRaw('
                 isin,
                 SUM(quantity) as total_quantity,
@@ -354,12 +364,13 @@ class DegiroTransactionRepository
             ->havingRaw('SUM(quantity) = 0')
             ->get();
 
-        // Get currency for each ISIN (use the most recent transaction's value_currency)
         $isins = $trades->pluck('isin')->toArray();
         $currencies = collect();
         if (! empty($isins)) {
-            $currencies = DegiroTransaction::where('user_id', $userId)
-                ->whereIn('isin', $isins)
+            $currencyQuery = DegiroTransaction::where('user_id', $userId)
+                ->whereIn('isin', $isins);
+            $this->constrainToAsOfDate($currencyQuery, $asOfDate);
+            $currencies = $currencyQuery
                 ->select('isin', 'value_currency', 'id')
                 ->orderBy('id', 'desc')
                 ->get()
@@ -458,6 +469,67 @@ class DegiroTransactionRepository
     /**
      * @return array{0: int, 1: int} Unix timestamp (best effort), then id
      */
+    /**
+     * @param \Illuminate\Database\Eloquent\Builder<DegiroTransaction> $query
+     */
+    private function constrainToAsOfDate($query, ?string $asOfDate): void
+    {
+        if ($asOfDate === null || $asOfDate === '') {
+            return;
+        }
+
+        $query->whereRaw("STR_TO_DATE(`date`, '%d-%m-%Y') <= ?", [$asOfDate]);
+    }
+
+    private function transactionDateYmd(DegiroTransaction $t): string
+    {
+        try {
+            return Carbon::createFromFormat('d-m-Y', (string) $t->date)->toDateString();
+        } catch (\Throwable) {
+            return '9999-12-31';
+        }
+    }
+
+    /**
+     * Calendar date (Y-m-d) of the user's earliest Degiro transaction, or null if none.
+     */
+    public function earliestTransactionDate(int $userId): ?string
+    {
+        $raw = DegiroTransaction::query()
+            ->where('user_id', $userId)
+            ->whereNotNull('date')
+            ->where('date', '!=', '')
+            ->selectRaw("MIN(STR_TO_DATE(`date`, '%d-%m-%Y')) as earliest")
+            ->value('earliest');
+
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse((string) $raw)->toDateString();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Calendar year of the user's earliest Degiro transaction, or null if none.
+     */
+    public function earliestTransactionYear(int $userId): ?int
+    {
+        $date = $this->earliestTransactionDate($userId);
+        if ($date === null) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($date)->year;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
     private function chronologicalSortKey(DegiroTransaction $t): array
     {
         $ts = 0;

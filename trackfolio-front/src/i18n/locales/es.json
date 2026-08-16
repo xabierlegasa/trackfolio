@@ -10,7 +10,6 @@
   },
   "taxReturnYears": {
     "title": "Declaración de la Renta",
-    "backDashboard": "Volver al panel",
     "empty": "Aún no hay transacciones importadas. Sube primero tu CSV de Degiro.",
     "exercise": "Ejercicio {year}",
     "evolutionTitle": "Evolución por años",
@@ -25,7 +24,6 @@
   "taxReturnYear": {
     "title": "Ejercicio {year}",
     "backYears": "Todos los ejercicios",
-    "backDashboard": "Panel",
     "noSales": "No hay ventas en este año natural en tus datos importados.",
     "exportCsv": "Exportar CSV",
     "copyProduct": "Copiar producto",
@@ -112,6 +110,11 @@
       "description": "Sube tu archivo CSV de transacciones de Degiro para importar tus datos de trading.",
       "button": "Subir CSV de transacciones de Degiro"
     },
+    "uploadAccountStatements": {
+      "title": "Subir Account Statements",
+      "description": "Sube el CSV de Account Statement de Degiro para que la caja alimente Stats y Evolution.",
+      "button": "Subir CSV de Account Statement"
+    },
     "portfolioStats": {
       "title": "Stats",
       "description": "Visualiza la composición actual de tu cartera basada en todas tus transacciones.",
@@ -130,18 +133,6 @@
   },
   "configuration": {
     "title": "Configuración",
-    "backToDashboard": "Volver al panel",
-    "leverage": {
-      "title": "Leverage",
-      "description": "Capital prestado / debit balance en Degiro. Se resta del total de la cartera en EUR. Cada guardado queda en el historial.",
-      "amountLabel": "Leverage actual (EUR)",
-      "hint": "Introduce euros enteros. 0 si no tienes leverage.",
-      "save": "Guardar leverage",
-      "saved": "Leverage guardado.",
-      "historyTitle": "Historial",
-      "historyDate": "Fecha",
-      "historyAmount": "Importe"
-    },
     "dangerZone": {
       "title": "Zona de peligro",
       "description": "Elimina de forma permanente todas las transacciones de Degiro que hayas importado. No se puede deshacer.",
@@ -278,7 +269,7 @@
     "summary": {
       "balance": "Balance",
       "portfolio": "Portfolio",
-      "leverage": "Leverage",
+      "cash": "Caja",
       "day": "Day",
       "totalPl": "Total P/L"
     },
@@ -286,15 +277,15 @@
       "close": "Cerrar",
       "balance": {
         "title": "Balance",
-        "description": "Es el valor neto de tu cuenta en euros a la fecha de cotización mostrada arriba.\n\nSe calcula así:\nPortfolio − Leverage\n\nEs decir: el valor de mercado de todas las posiciones abiertas (convertido a EUR con el tipo de cambio USD→EUR del día), menos el leverage/debit balance que hayas configurado en Configuración.\n\nSi no tienes leverage (0 €), Balance coincide con Portfolio.\n\nNo incluye efectivo en cuenta ni P/L de trades ya cerrados: solo el valor neto de la cartera abierta tras restar el capital prestado."
+        "description": "Patrimonio neto de tu cuenta en euros a la fecha de cotización mostrada arriba.\n\nSe calcula así:\nPortfolio + Caja\n\nPortfolio es el valor de mercado de las posiciones abiertas; Caja es el último Balance EUR de tu Account Statement de Degiro con fecha igual o anterior (puede ser negativo si hay débito).\n\nEl P/L de trades cerrados va aparte en Total P/L."
       },
       "portfolio": {
         "title": "Portfolio",
-        "description": "Es el valor bruto de mercado de todas tus posiciones abiertas, en euros.\n\nCálculo por posición:\nprecio de cierre D‑1 × cantidad de títulos\n\nLuego se convierte a EUR con el tipo de cambio USD→EUR guardado para hoy (open.er-api) y se suman todas las posiciones.\n\nSolo entran ISINs con cantidad neta distinta de cero (posiciones abiertas). No se resta el leverage; para eso mira Balance.\n\nLa fecha de los precios es la del bloque «Datos a fecha de» (último cierre de mercado disponible respecto a ayer UTC, con lookback si el mercado estaba cerrado)."
+        "description": "Valor bruto de mercado de todas tus posiciones abiertas, en euros.\n\nPor posición:\nprecio de cierre × cantidad\n\nSe convierte a EUR con el tipo USD→EUR de la fecha as-of y se suma.\n\nLa caja no entra aquí: mira Caja y Balance."
       },
-      "leverage": {
-        "title": "Leverage",
-        "description": "Es el capital prestado / debit balance que has indicado tú en Configuración, en euros.\n\nNo se calcula automáticamente desde Degiro: cada vez que guardas un importe se crea una fila nueva en el historial (user_leverages) con fecha, y aquí usamos el valor más reciente.\n\nSe muestra en gris porque es un dato de contexto: su efecto principal está en Balance (Portfolio − Leverage).\n\nSi nunca has configurado leverage, vale 0 €."
+      "cash": {
+        "title": "Caja",
+        "description": "Saldo / débito en EUR tomado del CSV de Account Statement de Degiro.\n\nPara la fecha as-of usamos la última fila con moneda de Balance EUR y fecha de movimiento igual o anterior.\n\nSube el Account Statement desde el Dashboard. Valores negativos indican débito / margen."
       },
       "day": {
         "title": "Day",
@@ -306,6 +297,22 @@
       }
     },
     "dataAsOfLabel": "Datos a fecha de",
+    "asOfPickerLabel": "Elegir fecha (YYYY/MM/DD)",
+    "asOfPrevDay": "Día anterior",
+    "asOfNextDay": "Día siguiente",
+    "asOfPrevMonth": "Mes anterior",
+    "asOfNextMonth": "Mes siguiente",
+    "asOfPrevYear": "Año anterior",
+    "asOfNextYear": "Año siguiente",
+    "asOfPrevYears": "Años anteriores",
+    "asOfNextYears": "Años siguientes",
+    "asOfPickMonthYear": "Elegir mes y año",
+    "asOfPickYear": "Elegir año",
+    "marketClosedWeekend": "El mercado de EEUU estuvo cerrado el {date} (fin de semana).",
+    "marketClosedHoliday": "El mercado de EEUU estuvo cerrado el {date} ({holiday}).",
+    "marketClosedTooRecent": "Aún no hay precios de cierre para el {date}. Última sesión completada: {latest}.",
+    "marketClosedGeneric": "El mercado de EEUU estuvo cerrado esa fecha.",
+    "marketHolidayFallback": "festivo",
     "fxRateLabel": "EUR vs USD",
     "fxRateValue": "1 USD = {rate} EUR",
     "fxRateAsOf": "a fecha de {date}",
@@ -337,15 +344,45 @@
   },
   "portfolioEvolution": {
     "title": "Evolución del Balance",
-    "subtitle": "Últimos {months} meses a partir de fotos diarias guardadas (sin recalcular).",
-    "empty": "Todavía no hay fotos diarias. Abre Stats/Portfolio al menos una vez para guardar el snapshot de hoy.",
+    "subtitle": "Fotos diarias de {year}.",
+    "subtitleMonth": "Balance a fin de mes desde tu primera operación hasta hoy. Los huecos son meses sin snapshot.",
+    "subtitleYear": "Balance de fin de año (último día con registro) desde tu primera operación hasta hoy.",
+    "yearLabel": "Año",
+    "views": {
+      "day": "Por día",
+      "month": "Por mes",
+      "year": "Por año"
+    },
+    "empty": "Todavía no hay fotos diarias para este año. Abre Stats/Portfolio o recalcula para rellenar el gráfico.",
+    "recalculate": "Borrar datos y recalcular",
+    "recalculateStarted": "Recálculo iniciado. Los snapshots se irán rellenando desde tu primera operación hasta ayer. Recarga la página para ver la evolución.",
+    "recalculateFailed": "No se ha podido iniciar el recálculo.",
     "table": {
       "date": "Fecha",
+      "month": "Mes",
+      "year": "Año",
       "balance": "Balance",
       "portfolio": "Portfolio",
-      "leverage": "Leverage",
+      "cash": "Caja",
       "day": "Day",
       "totalPl": "Total P/L"
+    }
+  },
+  "uploadAccountStatements": {
+    "title": "Subir Account Statements",
+    "description": "Importa el CSV de Account Statement de Degiro. La columna Balance (EUR) se usa como caja en cada fecha. Las filas duplicadas se ignoran.",
+    "selectFile": "Elegir CSV",
+    "upload": "Subir",
+    "uploading": "Subiendo…",
+    "success": {
+      "title": "Subida completada",
+      "newCount": "{count} filas nuevas importadas",
+      "ignoredCount": "{count} filas ya existían y se ignoraron",
+      "goToDashboard": "Volver al panel"
+    },
+    "error": {
+      "title": "Error al subir",
+      "details": "{count} problema(s) encontrado(s)"
     }
   },
   "trades": {
@@ -374,6 +411,24 @@
     "positiveSum": "Positivo",
     "negativeSum": "Negativo",
     "difference": "Diferencia"
+  },
+  "admin": {
+    "title": "Admin",
+    "processesTitle": "Procesos de cálculo de snapshots",
+    "processDetailTitle": "Proceso #{id}",
+    "logsTitle": "Logs del proceso",
+    "noProcesses": "Aún no hay procesos de cálculo de snapshots.",
+    "noLogs": "No hay logs para este proceso.",
+    "backToAdmin": "Volver a Admin",
+    "providerRequestTitle": "Provider request #{id}",
+    "providerRequestAttr": "Atributo",
+    "providerRequestValue": "Valor",
+    "pagination": {
+      "page": "Página {current} de {total}",
+      "itemsPerPage": "Elementos por página"
+    },
+    "prev": "Anterior",
+    "next": "Siguiente"
   }
 }
 

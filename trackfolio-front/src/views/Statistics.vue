@@ -81,18 +81,12 @@
         </template>
       </Suspense>
     </div>
-
-    <div class="mt-6">
-      <RouterLink :to="{ name: 'dashboard' }" class="btn btn-ghost">
-        {{ $t('common.backToDashboard') }}
-      </RouterLink>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent, ref, watch } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import PortfolioStats from './PortfolioStats.vue'
 
 const EvolutionPanel = defineAsyncComponent(() => import('./PortfolioEvolution.vue'))
@@ -143,8 +137,14 @@ const setTab = (tab: StatsTab) => {
   const query = { ...route.query }
   if (tab === 'portfolio') {
     delete query.tab
+    delete query.year
+    delete query.view
   } else {
     query.tab = tab
+  }
+  if (tab !== 'evolution') {
+    delete query.year
+    delete query.view
   }
 
   router.replace({ name: 'statistics', query })
