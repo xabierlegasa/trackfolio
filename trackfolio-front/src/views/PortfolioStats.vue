@@ -488,7 +488,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter, type LocationQuery } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   authService,
@@ -870,7 +870,7 @@ const syncAsOfToUrl = (asOf: string) => {
   if (parseAsOfQuery(route.query.asOf) === asOf) {
     return
   }
-  const query = { ...route.query, asOf }
+  const query: LocationQuery = { ...route.query, asOf }
   if (!query.tab || query.tab === 'portfolio') {
     delete query.tab
   }

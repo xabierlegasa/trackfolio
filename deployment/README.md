@@ -31,7 +31,11 @@ cd trackfolio-api && php artisan key:generate --show
 ```bash
 cd deployment
 ansible-playbook -i inventory.ini deploy.yml
+# If sudo asks for a password on the NAS:
+ansible-playbook -i inventory.ini deploy.yml -K
 ```
+
+Docker compose hooks run with `become` (sudo) so they can access `/var/run/docker.sock` on Synology.
 
 After a successful deploy:
 

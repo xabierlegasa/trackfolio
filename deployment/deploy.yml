@@ -4,19 +4,23 @@
 #   ansible-galaxy collection install community.docker
 #
 # Prerequisites (NAS):
-#   Docker + Compose, user xabi in docker group, SSH enabled
+#   Docker / Container Manager, SSH enabled
 #   mkdir -p /volume1/docker/trackfolio
 #   NAS must be able to clone ansistrano_git_repo
+#   after_symlink runs docker with become (sudo); use -K if sudo asks for a password
 #
 # Deploy:
 #   cd deployment && ansible-playbook -i inventory.ini deploy.yml
+#   # if needed: ansible-playbook -i inventory.ini deploy.yml -K
 
 - name: Deploy Trackfolio to Synology NAS using Ansistrano
   hosts: nas
-  # Self-signed Git HTTPS on LAN (192.168.1.149)
+  # Self-signed Git HTTPS on LAN; Synology non-login PATH is minimal
   environment:
     GIT_SSL_NO_VERIFY: "true"
+    PATH: "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
   vars:
+    trackfolio_docker_bin: "/usr/bin/docker"
     ansistrano_deploy_to: "/volume1/docker/trackfolio"
     ansistrano_keep_releases: 3
     ansistrano_deploy_via: "git"
