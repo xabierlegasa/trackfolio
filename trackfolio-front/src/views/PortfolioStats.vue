@@ -2,8 +2,16 @@
   <div :class="embedded ? undefined : 'container mx-auto p-8'">
     <h1 v-if="!embedded" class="text-4xl font-bold mb-8">{{ $t('portfolioStats.title') }}</h1>
     
-    <div v-if="isLoading && !hasLoadedOnce" class="flex justify-center">
+    <div v-if="isLoading && !hasLoadedOnce" class="flex flex-col items-center justify-center gap-4 py-16 px-4 text-center">
       <span class="loading loading-spinner loading-lg"></span>
+      <div class="max-w-md space-y-2">
+        <p class="text-lg font-semibold text-base-content/80">
+          {{ $t('portfolioStats.initialLoading.title') }}
+        </p>
+        <p class="text-sm text-base-content/60">
+          {{ $t('portfolioStats.initialLoading.description') }}
+        </p>
+      </div>
     </div>
 
     <div v-else-if="fatalError" class="alert alert-error">

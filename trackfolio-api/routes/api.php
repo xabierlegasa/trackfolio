@@ -4,6 +4,8 @@ use App\AccountStatement\Infrastructure\Controllers\UploadAccountStatementsContr
 use App\Admin\Infrastructure\Controllers\ListSnapshotCalculationProcessLogsController;
 use App\Admin\Infrastructure\Controllers\ListSnapshotCalculationProcessesController;
 use App\Admin\Infrastructure\Controllers\ShowProviderRequestController;
+use App\Admin\Infrastructure\Controllers\ShowRecalculateEvolutionFeatureController;
+use App\Admin\Infrastructure\Controllers\UpdateRecalculateEvolutionFeatureController;
 use App\Auth\Controllers\AuthController;
 use App\DegiroTransaction\Infrastructure\Controllers\DeleteAllDegiroTransactionsController;
 use App\DegiroTransaction\Infrastructure\Controllers\ListDegiroTransactionsController;
@@ -68,5 +70,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/snapshot-calculation-processes', [ListSnapshotCalculationProcessesController::class, 'index']);
         Route::get('/snapshot-calculation-processes/{processId}/logs', [ListSnapshotCalculationProcessLogsController::class, 'index']);
         Route::get('/provider-requests/{providerRequestId}', [ShowProviderRequestController::class, 'show']);
+        Route::get('/global-config/recalculate-evolution-feature', [ShowRecalculateEvolutionFeatureController::class, 'show']);
+        Route::put('/global-config/recalculate-evolution-feature', [UpdateRecalculateEvolutionFeatureController::class, 'update']);
     });
 });

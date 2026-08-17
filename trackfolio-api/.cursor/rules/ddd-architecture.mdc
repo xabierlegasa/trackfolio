@@ -13,7 +13,7 @@ Place new PHP under `app/{BoundedContext}/{Layer}/`. Contexts: `Auth`, `User`, `
 - **Controller** (Infrastructure): auth, request validation, HTTP status, JSON mapping. No business rules, no Eloquent `::where`.
 - **UseCase** (Application): one `execute(...)` per application action. Orchestrates domain services. Returns a DTO or throws a domain exception.
 - **Domain service**: rules and calculations. No `Request`, `JsonResponse`, or route knowledge.
-- **Repository**: the only place for SQL/Eloquent query building for that context’s tables.
+- **Repository**: the only place for SQL/Eloquent query building for that context’s tables. Never store queries on services or use cases. They should call the corresponding repository to get the data
 - **Entity**: table mapping + casts. Keep invariants here when they are local to the row.
 - **DTO**: `readonly` constructor props. No Eloquent.
 

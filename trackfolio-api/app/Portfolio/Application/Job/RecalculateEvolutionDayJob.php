@@ -18,12 +18,18 @@ class RecalculateEvolutionDayJob implements ShouldQueue
         public readonly int $userId,
         public readonly string $date,
         public readonly int $processId,
+        public readonly ?string $untilDate = null,
     ) {
         $this->onQueue('queue_one');
     }
 
     public function handle(RecalculateEvolutionDayUseCase $recalculateEvolutionDayUseCase): void
     {
-        $recalculateEvolutionDayUseCase->execute($this->userId, $this->date, $this->processId);
+        $recalculateEvolutionDayUseCase->execute(
+            $this->userId,
+            $this->date,
+            $this->processId,
+            $this->untilDate,
+        );
     }
 }

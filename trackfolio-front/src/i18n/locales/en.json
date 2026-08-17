@@ -129,6 +129,31 @@
       "title": "Configuration",
       "description": "Manage account settings and destructive actions such as clearing imported data.",
       "button": "Open configuration"
+    },
+    "initialSetup": {
+      "title": "Get started",
+      "description": "To begin, upload your Degiro transactions and Account Statements. Continue to complete the initial setup.",
+      "continue": "Continue"
+    }
+  },
+  "initialSetup": {
+    "title": "Initial setup",
+    "description": "Upload both CSV files to import your Degiro transactions and Account Statements. Both files are required.",
+    "transactionsFile": "Degiro transactions CSV",
+    "statementsFile": "Account Statements CSV",
+    "upload": "Upload",
+    "uploading": "Uploading…",
+    "success": {
+      "title": "Setup complete",
+      "transactions": "{count} new transaction(s) imported.",
+      "statements": "{count} new account statement row(s) imported.",
+      "goToDashboard": "Go to dashboard"
+    },
+    "error": {
+      "title": "Upload failed",
+      "bothRequired": "Both files are required.",
+      "transactionsFailed": "Could not upload Degiro transactions.",
+      "statementsFailed": "Transactions were imported, but Account Statements upload failed. You can retry from the dashboard."
     }
   },
   "configuration": {
@@ -265,6 +290,10 @@
   },
   "portfolioStats": {
     "title": "Portfolio",
+    "initialLoading": {
+      "title": "Preparing your portfolio…",
+      "description": "The first load can take a while while we fetch prices and build your snapshot. Please wait — this is normal and not stuck."
+    },
     "noHoldings": "No holdings found. Your portfolio is empty.",
     "summary": {
       "balance": "Balance",
@@ -414,11 +443,25 @@
   },
   "admin": {
     "title": "Admin",
+    "featureFlagsTitle": "Feature flags",
+    "featureFlagsHint": "Global kill switches stored in global_config.",
+    "recalculateEvolutionFeature": "Recalculate portfolio evolution",
+    "featureEnabled": "Enabled",
+    "featureDisabled": "Disabled",
     "processesTitle": "Snapshot calculation processes",
     "processDetailTitle": "Process #{id}",
     "logsTitle": "Process logs",
     "noProcesses": "No snapshot calculation processes yet.",
     "noLogs": "No logs for this process.",
+    "noMatchingLogs": "No logs match the current filters.",
+    "filter": {
+      "isin": "ISIN",
+      "symbol": "Symbol",
+      "isinPlaceholder": "e.g. US02079K3059",
+      "symbolPlaceholder": "e.g. GOOGL",
+      "apply": "Apply",
+      "clear": "Clear"
+    },
     "backToAdmin": "Back to Admin",
     "providerRequestTitle": "Provider request #{id}",
     "providerRequestAttr": "Attribute",

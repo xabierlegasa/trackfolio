@@ -20,7 +20,14 @@ class ListSnapshotCalculationProcessLogsController
         }
 
         $perPage = max(1, min(100, (int) $request->query('per_page', 20)));
-        $paginator = $this->repository->paginateLogs($processId, $perPage);
+        $isin = trim((string) $request->query('isin', ''));
+        $symbol = trim((string) $request->query('symbol', ''));
+        $paginator = $this->repository->paginateLogs(
+            $processId,
+            $perPage,
+            $isin !== '' ? $isin : null,
+            $symbol !== '' ? $symbol : null,
+        );
 
         $data = collect($paginator->items())->map(static function ($log): array {
             return [

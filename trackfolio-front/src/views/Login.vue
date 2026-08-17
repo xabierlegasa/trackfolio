@@ -69,6 +69,16 @@
         <span v-else>{{ $t('login.submit') }}</span>
       </button>
 
+      <button
+        v-if="isLocalDev"
+        type="button"
+        class="btn btn-outline w-full"
+        :disabled="isLoading"
+        @click="populateUser1AndSubmit"
+      >
+        Populate user 1
+      </button>
+
       <!-- Error Message -->
       <div v-if="submitError" class="alert alert-error">
         <span>{{ submitError }}</span>
@@ -111,6 +121,15 @@ const errors = reactive({
 const isLoading = ref(false)
 const submitError = ref('')
 const showPassword = ref(false)
+const isLocalDev = import.meta.env.DEV
+
+const populateUser1AndSubmit = () => {
+  form.email = 'xabierlegasa@gmail.com'
+  form.password = 'xabi'
+  errors.email = ''
+  errors.password = ''
+  void handleSubmit()
+}
 
 const validateEmail = () => {
   if (!form.email) {

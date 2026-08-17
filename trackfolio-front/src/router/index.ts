@@ -5,6 +5,7 @@ import Dashboard from '../views/Dashboard.vue'
 import Account from '../views/Account.vue'
 import UploadDegiroTransactions from '../views/UploadDegiroTransactions.vue'
 import UploadAccountStatements from '../views/UploadAccountStatements.vue'
+import InitialSetup from '../views/InitialSetup.vue'
 import DegiroTransactionsList from '../views/DegiroTransactionsList.vue'
 import Statistics from '../views/Statistics.vue'
 import Configuration from '../views/Configuration.vue'
@@ -60,6 +61,12 @@ const router = createRouter({
       path: '/upload-account-statements',
       name: 'upload-account-statements',
       component: UploadAccountStatements,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/initial-setup',
+      name: 'initial-setup',
+      component: InitialSetup,
       meta: { requiresAuth: true }
     },
     {

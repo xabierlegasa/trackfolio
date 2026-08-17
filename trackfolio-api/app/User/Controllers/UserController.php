@@ -2,7 +2,6 @@
 
 namespace App\User\Controllers;
 
-use App\Admin\Domain\Service\IsAdminUserService;
 use App\DegiroTransaction\Infrastructure\Repository\DegiroTransactionRepository;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
@@ -12,7 +11,6 @@ class UserController extends Controller
 {
     public function __construct(
         private DegiroTransactionRepository $degiroTransactionRepository,
-        private IsAdminUserService $isAdminUserService,
     ) {}
 
     /**
@@ -25,7 +23,7 @@ class UserController extends Controller
         return response()->json([
             'email' => $user->email,
             'name' => $user->name,
-            'is_admin' => $this->isAdminUserService->execute((int) $user->id),
+            'is_admin' => (bool) $user->is_admin,
         ]);
     }
 

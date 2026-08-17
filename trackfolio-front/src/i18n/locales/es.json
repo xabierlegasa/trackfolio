@@ -129,6 +129,31 @@
       "title": "Configuración",
       "description": "Ajustes de la cuenta y acciones destructivas, como borrar los datos importados.",
       "button": "Abrir configuración"
+    },
+    "initialSetup": {
+      "title": "Empieza aquí",
+      "description": "Para comenzar, sube tus transacciones de Degiro y tus Account Statements. Continúa para completar la configuración inicial.",
+      "continue": "Continuar"
+    }
+  },
+  "initialSetup": {
+    "title": "Configuración inicial",
+    "description": "Sube ambos CSV para importar tus transacciones de Degiro y tus Account Statements. Ambos ficheros son obligatorios.",
+    "transactionsFile": "CSV de transacciones Degiro",
+    "statementsFile": "CSV de Account Statements",
+    "upload": "Subir",
+    "uploading": "Subiendo…",
+    "success": {
+      "title": "Configuración completada",
+      "transactions": "{count} transacción(es) nueva(s) importada(s).",
+      "statements": "{count} fila(s) nueva(s) de Account Statement importada(s).",
+      "goToDashboard": "Ir al dashboard"
+    },
+    "error": {
+      "title": "Error al subir",
+      "bothRequired": "Los dos ficheros son obligatorios.",
+      "transactionsFailed": "No se pudieron subir las transacciones de Degiro.",
+      "statementsFailed": "Las transacciones se importaron, pero falló la subida de Account Statements. Puedes reintentarlo desde el dashboard."
     }
   },
   "configuration": {
@@ -265,6 +290,10 @@
   },
   "portfolioStats": {
     "title": "Portfolio",
+    "initialLoading": {
+      "title": "Preparando tu portfolio…",
+      "description": "La primera carga puede tardar un rato mientras obtenemos precios y construimos el snapshot. Ten paciencia: es normal y no está roto."
+    },
     "noHoldings": "No se encontraron posiciones. Tu cartera está vacía.",
     "summary": {
       "balance": "Balance",
@@ -414,11 +443,25 @@
   },
   "admin": {
     "title": "Admin",
+    "featureFlagsTitle": "Feature flags",
+    "featureFlagsHint": "Kill switches globales guardados en global_config.",
+    "recalculateEvolutionFeature": "Recalcular evolución de cartera",
+    "featureEnabled": "Activado",
+    "featureDisabled": "Desactivado",
     "processesTitle": "Procesos de cálculo de snapshots",
     "processDetailTitle": "Proceso #{id}",
     "logsTitle": "Logs del proceso",
     "noProcesses": "Aún no hay procesos de cálculo de snapshots.",
     "noLogs": "No hay logs para este proceso.",
+    "noMatchingLogs": "Ningún log coincide con los filtros.",
+    "filter": {
+      "isin": "ISIN",
+      "symbol": "Symbol",
+      "isinPlaceholder": "p. ej. US02079K3059",
+      "symbolPlaceholder": "p. ej. GOOGL",
+      "apply": "Aplicar",
+      "clear": "Limpiar"
+    },
     "backToAdmin": "Volver a Admin",
     "providerRequestTitle": "Provider request #{id}",
     "providerRequestAttr": "Atributo",

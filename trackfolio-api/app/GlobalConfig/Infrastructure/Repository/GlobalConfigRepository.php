@@ -12,4 +12,17 @@ class GlobalConfigRepository
             ->where('code', $code)
             ->first();
     }
+
+    public function updateValueByCode(string $code, string $value): ?GlobalConfig
+    {
+        $row = $this->findByCode($code);
+        if ($row === null) {
+            return null;
+        }
+
+        $row->value = $value;
+        $row->save();
+
+        return $row;
+    }
 }

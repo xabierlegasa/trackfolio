@@ -53,6 +53,11 @@ export interface SnapshotCalculationProcessLogsResponse {
   meta: PaginationMeta
 }
 
+export interface RecalculateEvolutionFeatureConfig {
+  code: string
+  enabled: boolean
+}
+
 export const adminService = {
   async listSnapshotCalculationProcesses(page = 1, perPage = 20): Promise<SnapshotCalculationProcessesResponse> {
     const response = await apiClient.get<SnapshotCalculationProcessesResponse>(
@@ -66,10 +71,18 @@ export const adminService = {
     processId: number,
     page = 1,
     perPage = 20,
+    filters: { isin?: string; symbol?: string } = {},
   ): Promise<SnapshotCalculationProcessLogsResponse> {
     const response = await apiClient.get<SnapshotCalculationProcessLogsResponse>(
       `/api/admin/snapshot-calculation-processes/${processId}/logs`,
-      { params: { page, per_page: perPage } },
+      {
+        params: {
+          page,
+          per_page: perPage,
+          ...(filters.isin ? { isin: filters.isin } : {}),
+          ...(filters.symbol ? { symbol: filters.symbol } : {}),
+        },
+      },
     )
     return response.data
   },
@@ -79,5 +92,20 @@ export const adminService = {
       `/api/admin/provider-requests/${providerRequestId}`,
     )
     return response.data.data
+  },
+
+  async getRecalculateEvolutionFeature(): Promise<RecalculateEvolutionFeatureConfig> {
+    const response = await apiClient.get<RecalculateEvolutionFeatureConfig>(
+      '/api/admin/global-config/recalculate-evolution-feature',
+    )
+    return response.data
+  },
+
+  async setRecalculateEvolutionFeature(enabled: boolean): Promise<RecalculateEvolutionFeatureConfig> {
+    const response = await apiClient.put<RecalculateEvolutionFeatureConfig>(
+      '/api/admin/global-config/recalculate-evolution-feature',
+      { enabled },
+    )
+    return response.data
   },
 }

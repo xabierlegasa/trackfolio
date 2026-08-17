@@ -4,6 +4,7 @@ namespace App\GlobalConfig\Domain\Service;
 
 use App\GlobalConfig\Domain\Entity\GlobalConfig;
 use App\GlobalConfig\Infrastructure\Repository\GlobalConfigRepository;
+use RuntimeException;
 
 class GetGlobalConfigService
 {
@@ -18,6 +19,22 @@ class GetGlobalConfigService
         $row = $this->globalConfigRepository->findByCode(self::RECALCULATE_EVOLUTION_FEATURE);
         if ($row === null) {
             return false;
+        }
+
+        return $this->asBool($row);
+    }
+
+    public function setRecalculateEvolutionFeatureEnabled(bool $enabled): bool
+    {
+        $row = $this->globalConfigRepository->updateValueByCode(
+            self::RECALCULATE_EVOLUTION_FEATURE,
+            $enabled ? '1' : '0',
+        );
+
+        if ($row === null) {
+            throw new RuntimeException(
+                'global_config row missing for ' . self::RECALCULATE_EVOLUTION_FEATURE
+            );
         }
 
         return $this->asBool($row);

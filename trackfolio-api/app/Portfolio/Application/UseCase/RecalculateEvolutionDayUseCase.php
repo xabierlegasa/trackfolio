@@ -25,14 +25,14 @@ class RecalculateEvolutionDayUseCase
         private SnapshotCalculationProcessLogService $snapshotCalculationProcessLogService,
     ) {}
 
-    public function execute(int $userId, string $date, int $processId): void
+    public function execute(int $userId, string $date, int $processId, ?string $untilDate = null): void
     {
         $this->snapshotCalculationProcessLogService->log(
             $processId,
             "Start Job para fecha {$date}",
             dateProcessed: $date,
         );
-        Log::info("evolution.recalculate day started user_id={$userId} date={$date} process_id={$processId}");
+        Log::info("evolution.recalculate day started user_id={$userId} date={$date} process_id={$processId} until=" . ($untilDate ?? 'null'));
 
         try {
             if (!$this->getGlobalConfigService->isRecalculateEvolutionFeatureEnabled()) {
@@ -48,14 +48,16 @@ class RecalculateEvolutionDayUseCase
             }
 
             $yesterday = Carbon::now(self::TIMEZONE)->subDay()->toDateString();
-            if ($date > $yesterday) {
+            $rangeUntil = $untilDate !== null && $untilDate < $yesterday ? $untilDate : $yesterday;
+
+            if ($date > $rangeUntil) {
                 $this->snapshotCalculationProcessLogService->log(
                     $processId,
-                    "Proceso detenido: fecha {$date} es posterior a ayer {$yesterday}",
+                    "Proceso detenido: fecha {$date} es posterior al fin del rango {$rangeUntil}",
                     dateProcessed: $date,
                 );
                 $this->snapshotCalculationProcessLogService->markCompleted($processId);
-                Log::info("evolution.recalculate stopped user_id={$userId} date={$date} yesterday={$yesterday} reason=after_yesterday");
+                Log::info("evolution.recalculate stopped user_id={$userId} date={$date} until={$rangeUntil} reason=after_until");
 
                 return;
             }
@@ -86,7 +88,7 @@ class RecalculateEvolutionDayUseCase
                 Log::info("evolution.recalculate skipped market closed user_id={$userId} date={$date} reason={$reason} holiday={$holiday}");
             }
 
-            $this->dispatchNextDay($userId, $date, $yesterday, $processId);
+            $this->dispatchNextDay($userId, $date, $rangeUntil, $processId, $untilDate);
         } catch (Throwable $exception) {
             $message = $exception->getMessage();
             $exceptionClass = $exception::class;
@@ -134,8 +136,13 @@ class RecalculateEvolutionDayUseCase
         return number_format(((int) $minUnit) / 100, 2, '.', '');
     }
 
-    private function dispatchNextDay(int $userId, string $date, string $yesterday, int $processId): void
-    {
+    private function dispatchNextDay(
+        int $userId,
+        string $date,
+        string $rangeUntil,
+        int $processId,
+        ?string $untilDate,
+    ): void {
         if (!$this->getGlobalConfigService->isRecalculateEvolutionFeatureEnabled()) {
             $this->snapshotCalculationProcessLogService->log(
                 $processId,
@@ -149,14 +156,14 @@ class RecalculateEvolutionDayUseCase
         }
 
         $next = Carbon::parse($date, self::TIMEZONE)->addDay()->toDateString();
-        if ($next > $yesterday) {
+        if ($next > $rangeUntil) {
             $this->snapshotCalculationProcessLogService->log(
                 $processId,
-                "Proceso completado: alcanzado el final del rango (último día procesado {$date}, ayer={$yesterday})",
+                "Proceso completado: alcanzado el final del rango (último día procesado {$date}, until={$rangeUntil})",
                 dateProcessed: $date,
             );
             $this->snapshotCalculationProcessLogService->markCompleted($processId);
-            Log::info("evolution.recalculate stopped user_id={$userId} date={$date} next={$next} yesterday={$yesterday} reason=reached_yesterday");
+            Log::info("evolution.recalculate stopped user_id={$userId} date={$date} next={$next} until={$rangeUntil} reason=reached_until");
 
             return;
         }
@@ -166,8 +173,8 @@ class RecalculateEvolutionDayUseCase
             "Llamar Job que calcula snapshot de {$next}",
             dateProcessed: $next,
         );
-        Log::info("evolution.recalculate re-dispatch user_id={$userId} from_date={$date} next_date={$next}");
+        Log::info("evolution.recalculate re-dispatch user_id={$userId} from_date={$date} next_date={$next} until={$rangeUntil}");
 
-        RecalculateEvolutionDayJob::dispatch($userId, $next, $processId);
+        RecalculateEvolutionDayJob::dispatch($userId, $next, $processId, $untilDate);
     }
 }

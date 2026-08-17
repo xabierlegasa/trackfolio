@@ -26,11 +26,24 @@ class AdminSnapshotCalculationProcessRepository
     /**
      * @return LengthAwarePaginator<int, SnapshotCalculationProcessLog>
      */
-    public function paginateLogs(int $processId, int $perPage = 20): LengthAwarePaginator
-    {
-        return SnapshotCalculationProcessLog::query()
+    public function paginateLogs(
+        int $processId,
+        int $perPage = 20,
+        ?string $isin = null,
+        ?string $symbol = null,
+    ): LengthAwarePaginator {
+        $query = SnapshotCalculationProcessLog::query()
             ->where('snapshot_calculation_process_id', $processId)
-            ->orderBy('id')
-            ->paginate($perPage);
+            ->orderBy('id');
+
+        if ($isin !== null && $isin !== '') {
+            $query->where('isin', 'like', '%' . $isin . '%');
+        }
+
+        if ($symbol !== null && $symbol !== '') {
+            $query->where('symbol', 'like', '%' . $symbol . '%');
+        }
+
+        return $query->paginate($perPage);
     }
 }

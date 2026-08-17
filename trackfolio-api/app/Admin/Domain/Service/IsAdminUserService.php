@@ -2,16 +2,14 @@
 
 namespace App\Admin\Domain\Service;
 
-use App\Admin\Infrastructure\Repository\AdminUserRepository;
+use App\User\Domain\Entity\User;
 
 class IsAdminUserService
 {
-    public function __construct(
-        private AdminUserRepository $adminUserRepository,
-    ) {}
-
     public function execute(int $userId): bool
     {
-        return $this->adminUserRepository->existsByUserId($userId);
+        return (bool) User::query()
+            ->whereKey($userId)
+            ->value('is_admin');
     }
 }

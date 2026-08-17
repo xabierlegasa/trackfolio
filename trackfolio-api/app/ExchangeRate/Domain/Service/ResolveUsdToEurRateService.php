@@ -8,91 +8,41 @@ use Illuminate\Support\Facades\Log;
 
 class ResolveUsdToEurRateService
 {
-    private const PROVIDER = 'open_er_api';
-    private const API_URL = 'https://open.er-api.com/v6/latest/USD';
+    private const PROVIDER = 'frankfurter';
+    private const API_BASE = 'https://api.frankfurter.app';
 
     /**
-     * USD → EUR rate for today. Uses DB cache; fetches open.er-api when missing.
+     * USD → EUR rate for today. Uses DB cache; fetches Frankfurter when missing.
      *
      * @return array{rate: float, rate_date: string}|null
      */
     public function resolveToday(): ?array
     {
-        $today = Carbon::today()->toDateString();
-
-        $cached = ExchangeRate::query()
-            ->whereDate('rate_date', $today)
-            ->where('base_currency', 'USD')
-            ->where('quote_currency', 'EUR')
-            ->first();
-
-        if ($cached !== null && (float) $cached->rate > 0) {
-            return [
-                'rate' => (float) $cached->rate,
-                'rate_date' => $this->asOfDateFromRow($cached),
-            ];
-        }
-
-        return $this->fetchAndPersist($today);
+        return $this->resolvePairToday('USD', 'EUR');
     }
 
     /**
-     * USD → EUR stored on or before $rateDate. Does not call the live FX API for historical dates.
+     * USD → EUR for $rateDate. Uses DB (exact, then on-or-before); fetches Frankfurter when missing.
      *
      * @return array{rate: float, rate_date: string}|null
      */
     public function resolveOnOrBefore(string $rateDate): ?array
     {
-        $today = Carbon::today()->toDateString();
-        if ($rateDate === $today) {
-            return $this->resolveToday();
-        }
-
-        $exact = ExchangeRate::query()
-            ->whereDate('rate_date', $rateDate)
-            ->where('base_currency', 'USD')
-            ->where('quote_currency', 'EUR')
-            ->first();
-
-        if ($exact !== null && (float) $exact->rate > 0) {
-            return [
-                'rate' => (float) $exact->rate,
-                'rate_date' => $this->asOfDateFromRow($exact),
-            ];
-        }
-
-        $latestBefore = ExchangeRate::query()
-            ->where('base_currency', 'USD')
-            ->where('quote_currency', 'EUR')
-            ->whereDate('rate_date', '<=', $rateDate)
-            ->orderByDesc('rate_date')
-            ->first();
-
-        if ($latestBefore !== null && (float) $latestBefore->rate > 0) {
-            return [
-                'rate' => (float) $latestBefore->rate,
-                'rate_date' => $this->asOfDateFromRow($latestBefore),
-            ];
-        }
-
-        $any = ExchangeRate::query()
-            ->where('base_currency', 'USD')
-            ->where('quote_currency', 'EUR')
-            ->orderByDesc('rate_date')
-            ->first();
-
-        if ($any !== null && (float) $any->rate > 0) {
-            return [
-                'rate' => (float) $any->rate,
-                'rate_date' => $this->asOfDateFromRow($any),
-            ];
-        }
-
-        return null;
+        return $this->resolvePairOnOrBefore('USD', 'EUR', $rateDate);
     }
 
     /**
-     * USD → EUR rate for today. Uses DB cache; fetches open.er-api when missing.
+     * GBP → EUR for $rateDate (DB first, then Frankfurter).
+     *
+     * @return array{rate: float, rate_date: string}|null
+     */
+    public function resolveGbpToEurOnOrBefore(string $rateDate): ?array
+    {
+        return $this->resolvePairOnOrBefore('GBP', 'EUR', $rateDate);
+    }
+
+    /**
+     * USD → EUR rate for today. Uses DB cache; fetches Frankfurter when missing.
      */
     public function forToday(): ?float
     {
@@ -104,32 +54,105 @@ class ResolveUsdToEurRateService
     /**
      * @return array{rate: float, rate_date: string}|null
      */
-    private function fetchAndPersist(string $rateDate): ?array
+    public function resolvePairOnOrBefore(string $baseCurrency, string $quoteCurrency, string $rateDate): ?array
     {
-        $payload = $this->fetchLatestUsdRates();
+        $base = strtoupper(trim($baseCurrency));
+        $quote = strtoupper(trim($quoteCurrency));
+        $today = Carbon::today()->toDateString();
+
+        if ($rateDate === $today) {
+            return $this->resolvePairToday($base, $quote);
+        }
+
+        $exact = ExchangeRate::query()
+            ->whereDate('rate_date', $rateDate)
+            ->where('base_currency', $base)
+            ->where('quote_currency', $quote)
+            ->first();
+
+        if ($exact !== null && (float) $exact->rate > 0) {
+            return [
+                'rate' => (float) $exact->rate,
+                'rate_date' => $this->asOfDateFromRow($exact),
+            ];
+        }
+
+        $latestBefore = ExchangeRate::query()
+            ->where('base_currency', $base)
+            ->where('quote_currency', $quote)
+            ->whereDate('rate_date', '<=', $rateDate)
+            ->orderByDesc('rate_date')
+            ->first();
+
+        if ($latestBefore !== null && (float) $latestBefore->rate > 0) {
+            return [
+                'rate' => (float) $latestBefore->rate,
+                'rate_date' => $this->asOfDateFromRow($latestBefore),
+            ];
+        }
+
+        return $this->fetchAndPersistPair($base, $quote, $rateDate);
+    }
+
+    /**
+     * @return array{rate: float, rate_date: string}|null
+     */
+    private function resolvePairToday(string $baseCurrency, string $quoteCurrency): ?array
+    {
+        $base = strtoupper(trim($baseCurrency));
+        $quote = strtoupper(trim($quoteCurrency));
+        $today = Carbon::today()->toDateString();
+
+        $cached = ExchangeRate::query()
+            ->whereDate('rate_date', $today)
+            ->where('base_currency', $base)
+            ->where('quote_currency', $quote)
+            ->first();
+
+        if ($cached !== null && (float) $cached->rate > 0) {
+            return [
+                'rate' => (float) $cached->rate,
+                'rate_date' => $this->asOfDateFromRow($cached),
+            ];
+        }
+
+        return $this->fetchAndPersistPair($base, $quote, $today);
+    }
+
+    /**
+     * @return array{rate: float, rate_date: string}|null
+     */
+    private function fetchAndPersistPair(string $baseCurrency, string $quoteCurrency, string $rateDate): ?array
+    {
+        $payload = $this->fetchPairForDate($baseCurrency, $quoteCurrency, $rateDate);
         if ($payload === null) {
             return null;
         }
 
         $rates = $payload['rates'] ?? null;
-        if (!is_array($rates) || !isset($rates['EUR'])) {
-            Log::warning('open.er-api response missing EUR rate', [
-                'result' => $payload['result'] ?? null,
+        if (!is_array($rates) || !isset($rates[$quoteCurrency])) {
+            Log::warning('frankfurter response missing quote rate', [
+                'base' => $baseCurrency,
+                'quote' => $quoteCurrency,
+                'requested_date' => $rateDate,
+                'payload_date' => $payload['date'] ?? null,
             ]);
 
             return null;
         }
 
-        $rate = (float) $rates['EUR'];
+        $rate = (float) $rates[$quoteCurrency];
         if ($rate <= 0) {
             return null;
         }
 
+        $providerDate = $this->asOfDateFromPayload($payload, $rateDate);
+
         ExchangeRate::query()->updateOrCreate(
             [
                 'rate_date' => $rateDate,
-                'base_currency' => 'USD',
-                'quote_currency' => 'EUR',
+                'base_currency' => $baseCurrency,
+                'quote_currency' => $quoteCurrency,
             ],
             [
                 'rate' => $rate,
@@ -138,9 +161,17 @@ class ResolveUsdToEurRateService
             ],
         );
 
+        Log::info('exchange_rate.frankfurter persisted', [
+            'base' => $baseCurrency,
+            'quote' => $quoteCurrency,
+            'requested_date' => $rateDate,
+            'provider_date' => $providerDate,
+            'rate' => $rate,
+        ]);
+
         return [
             'rate' => $rate,
-            'rate_date' => $this->asOfDateFromPayload($payload, $rateDate),
+            'rate_date' => $providerDate,
         ];
     }
 
@@ -153,24 +184,15 @@ class ResolveUsdToEurRateService
     }
 
     /**
-     * Prefer the provider's last-update date (when the FX actually comes from).
+     * Prefer the provider's rate date (ECB business day actually returned).
      *
      * @param array<string, mixed> $payload
      */
     private function asOfDateFromPayload(array $payload, string $fallback): string
     {
-        $unix = $payload['time_last_update_unix'] ?? null;
-        if (is_numeric($unix) && (int) $unix > 0) {
-            return Carbon::createFromTimestampUTC((int) $unix)->toDateString();
-        }
-
-        $utc = $payload['time_last_update_utc'] ?? null;
-        if (is_string($utc) && $utc !== '') {
-            try {
-                return Carbon::parse($utc)->utc()->toDateString();
-            } catch (\Throwable) {
-                // Fall through to the stored rate_date.
-            }
+        $date = $payload['date'] ?? null;
+        if (is_string($date) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) === 1) {
+            return $date;
         }
 
         return $fallback;
@@ -179,12 +201,20 @@ class ResolveUsdToEurRateService
     /**
      * @return array<string, mixed>|null
      */
-    private function fetchLatestUsdRates(): ?array
+    private function fetchPairForDate(string $baseCurrency, string $quoteCurrency, string $rateDate): ?array
     {
+        $today = Carbon::today()->toDateString();
+        $query = 'from=' . rawurlencode($baseCurrency) . '&to=' . rawurlencode($quoteCurrency);
+        $url = $rateDate === $today
+            ? self::API_BASE . '/latest?' . $query
+            : self::API_BASE . '/' . rawurlencode($rateDate) . '?' . $query;
+
         $ch = curl_init();
         curl_setopt_array($ch, [
-            CURLOPT_URL => self::API_URL,
+            CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 5,
             CURLOPT_TIMEOUT => 15,
             CURLOPT_HTTPHEADER => ['Accept: application/json'],
         ]);
@@ -195,7 +225,11 @@ class ResolveUsdToEurRateService
         curl_close($ch);
 
         if ($body === false || $curlError !== '' || $httpStatus < 200 || $httpStatus >= 300) {
-            Log::warning('Failed to fetch open.er-api USD rates', [
+            Log::warning('Failed to fetch frankfurter FX pair', [
+                'url' => $url,
+                'base' => $baseCurrency,
+                'quote' => $quoteCurrency,
+                'requested_date' => $rateDate,
                 'http_status' => $httpStatus,
                 'curl_error' => $curlError !== '' ? $curlError : null,
             ]);
@@ -204,9 +238,10 @@ class ResolveUsdToEurRateService
         }
 
         $decoded = json_decode($body, true);
-        if (!is_array($decoded) || ($decoded['result'] ?? null) !== 'success') {
-            Log::warning('open.er-api returned unsuccessful payload', [
-                'result' => is_array($decoded) ? ($decoded['result'] ?? null) : null,
+        if (!is_array($decoded) || !isset($decoded['rates']) || !is_array($decoded['rates'])) {
+            Log::warning('frankfurter returned unexpected payload', [
+                'url' => $url,
+                'requested_date' => $rateDate,
             ]);
 
             return null;

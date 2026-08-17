@@ -110,14 +110,16 @@ class EodhdProvider implements StockApiProviderInterface
             return null;
         }
 
+        $scale = $this->isLseTicker($ticker) ? 0.01 : 1.0;
+
         return new StockQuoteDTO(
-            currentPrice: isset($data['close']) ? (float) $data['close'] : null,
-            change: isset($data['change']) ? (float) $data['change'] : null,
+            currentPrice: isset($data['close']) ? (float) $data['close'] * $scale : null,
+            change: isset($data['change']) ? (float) $data['change'] * $scale : null,
             percentChange: isset($data['change_p']) ? (float) $data['change_p'] : null,
-            highPrice: isset($data['high']) ? (float) $data['high'] : null,
-            lowPrice: isset($data['low']) ? (float) $data['low'] : null,
-            openPrice: isset($data['open']) ? (float) $data['open'] : null,
-            previousClose: isset($data['previousClose']) ? (float) $data['previousClose'] : null,
+            highPrice: isset($data['high']) ? (float) $data['high'] * $scale : null,
+            lowPrice: isset($data['low']) ? (float) $data['low'] * $scale : null,
+            openPrice: isset($data['open']) ? (float) $data['open'] * $scale : null,
+            previousClose: isset($data['previousClose']) ? (float) $data['previousClose'] * $scale : null,
         );
     }
 
@@ -161,7 +163,7 @@ class EodhdProvider implements StockApiProviderInterface
                 );
             }
 
-            $candle = $this->convertEodToDto($data);
+            $candle = $this->convertEodToDto($data, $ticker);
             $hasClose = $candle !== null
                 && $candle->status === 'ok'
                 && !empty($candle->closePrices);
@@ -249,7 +251,7 @@ class EodhdProvider implements StockApiProviderInterface
     /**
      * @param array<int|string, mixed> $data
      */
-    private function convertEodToDto(array $data): ?StockCandleDTO
+    private function convertEodToDto(array $data, string $ticker): ?StockCandleDTO
     {
         $rows = array_is_list($data)
             ? array_values(array_filter($data, 'is_array'))
@@ -267,6 +269,7 @@ class EodhdProvider implements StockApiProviderInterface
             );
         }
 
+        $scale = $this->isLseTicker($ticker) ? 0.01 : 1.0;
         $closePrices = [];
         $highPrices = [];
         $lowPrices = [];
@@ -279,10 +282,10 @@ class EodhdProvider implements StockApiProviderInterface
                 continue;
             }
 
-            $closePrices[] = (float) ($row['close'] ?? 0);
-            $highPrices[] = (float) ($row['high'] ?? 0);
-            $lowPrices[] = (float) ($row['low'] ?? 0);
-            $openPrices[] = (float) ($row['open'] ?? 0);
+            $closePrices[] = (float) ($row['close'] ?? 0) * $scale;
+            $highPrices[] = (float) ($row['high'] ?? 0) * $scale;
+            $lowPrices[] = (float) ($row['low'] ?? 0) * $scale;
+            $openPrices[] = (float) ($row['open'] ?? 0) * $scale;
             $volumes[] = (int) ($row['volume'] ?? 0);
             $timestamps[] = Carbon::parse((string) $row['date'], 'UTC')->startOfDay()->getTimestamp();
         }
@@ -308,6 +311,14 @@ class EodhdProvider implements StockApiProviderInterface
             timestamps: $timestamps,
             volumes: $volumes,
         );
+    }
+
+    /**
+     * LSE equities/ETCs are quoted in GBX (pence). EODHD returns GBX; we store GBP.
+     */
+    private function isLseTicker(string $ticker): bool
+    {
+        return str_ends_with(strtoupper(trim($ticker)), '.LSE');
     }
 
     /**

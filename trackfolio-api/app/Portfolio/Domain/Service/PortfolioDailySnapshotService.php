@@ -155,10 +155,41 @@ class PortfolioDailySnapshotService
             ->all();
     }
 
+    /**
+     * @return list<string>
+     */
+    public function listDatesForUserBetween(int $userId, string $fromDate, string $toDate): array
+    {
+        return PortfolioDailySnapshot::query()
+            ->where('user_id', $userId)
+            ->whereDate('snapshot_date', '>=', $fromDate)
+            ->whereDate('snapshot_date', '<=', $toDate)
+            ->orderBy('snapshot_date')
+            ->pluck('snapshot_date')
+            ->map(static function ($date): string {
+                if ($date instanceof Carbon) {
+                    return $date->toDateString();
+                }
+
+                return (string) $date;
+            })
+            ->values()
+            ->all();
+    }
+
     public function deleteAllForUser(int $userId): int
     {
         return PortfolioDailySnapshot::query()
             ->where('user_id', $userId)
+            ->delete();
+    }
+
+    public function deleteForUserBetween(int $userId, string $fromDate, string $toDate): int
+    {
+        return PortfolioDailySnapshot::query()
+            ->where('user_id', $userId)
+            ->whereDate('snapshot_date', '>=', $fromDate)
+            ->whereDate('snapshot_date', '<=', $toDate)
             ->delete();
     }
 

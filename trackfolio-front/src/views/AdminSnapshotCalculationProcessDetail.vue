@@ -17,6 +17,48 @@
       <span>created_at={{ formatDateTime(process.created_at) }}</span>
     </div>
 
+    <div class="card bg-base-100 shadow-xl mb-6">
+      <div class="card-body flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
+        <div class="form-control flex-1 min-w-[160px]">
+          <label class="label py-0">
+            <span class="label-text font-semibold">{{ $t('admin.filter.isin') }}</span>
+          </label>
+          <input
+            v-model="isinDraft"
+            type="search"
+            class="input input-bordered input-sm w-full font-mono"
+            :placeholder="$t('admin.filter.isinPlaceholder')"
+            @keydown.enter.prevent="applyFilters"
+          />
+        </div>
+        <div class="form-control flex-1 min-w-[160px]">
+          <label class="label py-0">
+            <span class="label-text font-semibold">{{ $t('admin.filter.symbol') }}</span>
+          </label>
+          <input
+            v-model="symbolDraft"
+            type="search"
+            class="input input-bordered input-sm w-full"
+            :placeholder="$t('admin.filter.symbolPlaceholder')"
+            @keydown.enter.prevent="applyFilters"
+          />
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="btn btn-primary btn-sm" @click="applyFilters">
+            {{ $t('admin.filter.apply') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            :disabled="!isinDraft.trim() && !symbolDraft.trim() && !appliedIsin && !appliedSymbol"
+            @click="clearFilters"
+          >
+            {{ $t('admin.filter.clear') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body">
         <h2 class="card-title mb-4">{{ $t('admin.logsTitle') }}</h2>
@@ -31,7 +73,7 @@
 
         <template v-else>
           <div v-if="rows.length === 0" class="text-base-content/70">
-            {{ $t('admin.noLogs') }}
+            {{ hasActiveFilters ? $t('admin.noMatchingLogs') : $t('admin.noLogs') }}
           </div>
 
           <div v-else class="overflow-x-auto">
@@ -114,8 +156,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import {
   adminService,
   type SnapshotCalculationProcessLogRow,
@@ -124,6 +166,7 @@ import {
 import { formatInteger } from '../utils/numberFormat'
 
 const route = useRoute()
+const router = useRouter()
 const processId = ref(Number(route.params.processId))
 const isLoading = ref(false)
 const error = ref<string | null>(null)
@@ -132,6 +175,30 @@ const rows = ref<SnapshotCalculationProcessLogRow[]>([])
 const currentPage = ref(1)
 const lastPage = ref(1)
 const perPage = ref(20)
+const isinDraft = ref('')
+const symbolDraft = ref('')
+const appliedIsin = ref('')
+const appliedSymbol = ref('')
+let suppressQueryWatch = false
+
+const hasActiveFilters = computed(() => appliedIsin.value !== '' || appliedSymbol.value !== '')
+
+function parsePageQuery(raw: unknown): number {
+  const value = Array.isArray(raw) ? raw[0] : raw
+  const page = Number(value)
+  return Number.isInteger(page) && page >= 1 ? page : 1
+}
+
+function parsePerPageQuery(raw: unknown): number {
+  const value = Array.isArray(raw) ? raw[0] : raw
+  const n = Number(value)
+  return [10, 20, 50, 100].includes(n) ? n : 20
+}
+
+function parseStringQuery(raw: unknown): string {
+  const value = Array.isArray(raw) ? raw[0] : raw
+  return typeof value === 'string' ? value.trim() : ''
+}
 
 function formatDateTime(value: string | null): string {
   if (!value) return '—'
@@ -142,7 +209,30 @@ function providerRequestHref(id: number): string {
   return `/admin/provider-requests/${id}`
 }
 
-async function loadPage(page: number) {
+async function syncQueryToUrl(page: number, itemsPerPage: number) {
+  suppressQueryWatch = true
+  try {
+    const query: Record<string, string> = {
+      page: String(page),
+      per_page: String(itemsPerPage),
+    }
+    if (appliedIsin.value) {
+      query.isin = appliedIsin.value
+    }
+    if (appliedSymbol.value) {
+      query.symbol = appliedSymbol.value
+    }
+    await router.replace({
+      name: 'admin-snapshot-calculation-process',
+      params: { processId: String(processId.value) },
+      query,
+    })
+  } finally {
+    suppressQueryWatch = false
+  }
+}
+
+async function loadPage(page: number, updateUrl = true) {
   if (page < 1) return
 
   isLoading.value = true
@@ -152,11 +242,18 @@ async function loadPage(page: number) {
       processId.value,
       page,
       perPage.value,
+      {
+        isin: appliedIsin.value || undefined,
+        symbol: appliedSymbol.value || undefined,
+      },
     )
     process.value = response.process
     rows.value = response.data
     currentPage.value = response.meta.current_page
     lastPage.value = response.meta.last_page
+    if (updateUrl) {
+      await syncQueryToUrl(currentPage.value, perPage.value)
+    }
   } catch (err: any) {
     error.value = err.response?.data?.message || err.message || 'Failed to load logs'
   } finally {
@@ -168,15 +265,65 @@ function handlePerPageChange() {
   void loadPage(1)
 }
 
+function applyFilters() {
+  appliedIsin.value = isinDraft.value.trim()
+  appliedSymbol.value = symbolDraft.value.trim()
+  void loadPage(1)
+}
+
+function clearFilters() {
+  isinDraft.value = ''
+  symbolDraft.value = ''
+  appliedIsin.value = ''
+  appliedSymbol.value = ''
+  void loadPage(1)
+}
+
+function applyFiltersFromRoute() {
+  appliedIsin.value = parseStringQuery(route.query.isin)
+  appliedSymbol.value = parseStringQuery(route.query.symbol)
+  isinDraft.value = appliedIsin.value
+  symbolDraft.value = appliedSymbol.value
+  perPage.value = parsePerPageQuery(route.query.per_page)
+}
+
 watch(
   () => route.params.processId,
   (value) => {
     processId.value = Number(value)
-    void loadPage(1)
+    applyFiltersFromRoute()
+    void loadPage(parsePageQuery(route.query.page))
+  },
+)
+
+watch(
+  () => [route.query.page, route.query.per_page, route.query.isin, route.query.symbol] as const,
+  () => {
+    if (suppressQueryWatch) return
+    const page = parsePageQuery(route.query.page)
+    const items = parsePerPageQuery(route.query.per_page)
+    const isin = parseStringQuery(route.query.isin)
+    const symbol = parseStringQuery(route.query.symbol)
+    if (
+      page === currentPage.value
+      && items === perPage.value
+      && isin === appliedIsin.value
+      && symbol === appliedSymbol.value
+      && rows.value.length > 0
+    ) {
+      return
+    }
+    perPage.value = items
+    appliedIsin.value = isin
+    appliedSymbol.value = symbol
+    isinDraft.value = isin
+    symbolDraft.value = symbol
+    void loadPage(page, false)
   },
 )
 
 onMounted(() => {
-  void loadPage(1)
+  applyFiltersFromRoute()
+  void loadPage(parsePageQuery(route.query.page))
 })
 </script>

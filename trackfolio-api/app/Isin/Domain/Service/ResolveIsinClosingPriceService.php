@@ -21,6 +21,12 @@ class ResolveIsinClosingPriceService
 
     private ?int $lastProviderRequestId = null;
 
+    /** @var list<array{isin: string, closing_date: string, provider: string, close_price_min_unit: int|null, ticker_symbol: string}> */
+    private array $lastNewlyPersistedQuotes = [];
+
+    /** 'isin_quotes' | 'provider_api' | null */
+    private ?string $lastResolutionSource = null;
+
     public function __construct(
         private ThrottleStockApiRequestService $throttle,
         private InvalidatePortfolioAsOfViewsService $invalidatePortfolioAsOfViewsService,
@@ -29,6 +35,26 @@ class ResolveIsinClosingPriceService
     public function lastProviderRequestId(): ?int
     {
         return $this->lastProviderRequestId;
+    }
+
+    /**
+     * Where the last resolveForDateRange / resolveForD1 got the quote from.
+     *
+     * @return 'isin_quotes'|'provider_api'|null
+     */
+    public function lastResolutionSource(): ?string
+    {
+        return $this->lastResolutionSource;
+    }
+
+    /**
+     * Quotes inserted into isin_quotes during the last resolveForDateRange / resolveForD1 call.
+     *
+     * @return list<array{isin: string, closing_date: string, provider: string, close_price_min_unit: int|null, ticker_symbol: string}>
+     */
+    public function lastNewlyPersistedQuotes(): array
+    {
+        return $this->lastNewlyPersistedQuotes;
     }
     /**
      * Provider fallback order for closing prices.
@@ -88,11 +114,14 @@ class ResolveIsinClosingPriceService
         $from = $fromDate->copy()->setTimezone('UTC')->startOfDay();
         $to = $toDate->copy()->setTimezone('UTC')->startOfDay();
         $this->lastProviderRequestId = null;
+        $this->lastNewlyPersistedQuotes = [];
+        $this->lastResolutionSource = null;
 
         if (!$bypassCache) {
             $exact = $this->cachedQuoteOnDate($isin, $to->toDateString(), $provider);
             if ($exact !== null) {
                 $this->ensureIsinPersistedFromQuote($isin, $exact);
+                $this->lastResolutionSource = 'isin_quotes';
 
                 return $exact;
             }
@@ -105,6 +134,7 @@ class ResolveIsinClosingPriceService
             );
             if ($cachedInRange !== null) {
                 $this->ensureIsinPersistedFromQuote($isin, $cachedInRange);
+                $this->lastResolutionSource = 'isin_quotes';
 
                 return $cachedInRange;
             }
@@ -208,6 +238,7 @@ class ResolveIsinClosingPriceService
             }
 
             $this->lastProviderRequestId = $result->providerRequestId;
+            $this->lastResolutionSource = 'provider_api';
 
             $this->persistNewClosingPricesFromCandle(
                 isin: $isin,
@@ -241,12 +272,17 @@ class ResolveIsinClosingPriceService
         }
 
         if (!$bypassCache) {
-            return $this->cachedLatestInRange(
+            $fallback = $this->cachedLatestInRange(
                 $isin,
                 $from->toDateString(),
                 $to->toDateString(),
                 $provider,
             );
+            if ($fallback !== null) {
+                $this->lastResolutionSource = 'isin_quotes';
+            }
+
+            return $fallback;
         }
 
         return null;
@@ -339,6 +375,7 @@ class ResolveIsinClosingPriceService
             $high = $candle->highPrices[$index] ?? null;
             $low = $candle->lowPrices[$index] ?? null;
             $volume = $candle->volumes[$index] ?? null;
+            $currency = $this->quoteCurrencyForSymbol($symbol, $stockExchange);
 
             $quote = IsinQuote::query()->firstOrCreate(
                 [
@@ -353,7 +390,7 @@ class ResolveIsinClosingPriceService
                     'high_price_min_unit' => $this->priceToMinUnit($high),
                     'low_price_min_unit' => $this->priceToMinUnit($low),
                     'volume' => $volume !== null ? (int) $volume : null,
-                    'currency' => null,
+                    'currency' => $currency,
                     'stock_exchange' => $stockExchange,
                     'ticker_request_id' => $tickerRequestId,
                 ]
@@ -361,6 +398,15 @@ class ResolveIsinClosingPriceService
 
             if ($quote->wasRecentlyCreated) {
                 $newlyPersistedDates[] = $closingDate;
+                $this->lastNewlyPersistedQuotes[] = [
+                    'isin' => $isin,
+                    'closing_date' => $closingDate,
+                    'provider' => $providerName,
+                    'close_price_min_unit' => $quote->close_price_min_unit !== null
+                        ? (int) $quote->close_price_min_unit
+                        : null,
+                    'ticker_symbol' => $symbol,
+                ];
             }
         }
 
@@ -376,6 +422,18 @@ class ResolveIsinClosingPriceService
         }
 
         return (int) round((float) $price * 100);
+    }
+
+    private function quoteCurrencyForSymbol(string $symbol, ?string $stockExchange): ?string
+    {
+        $symbolUpper = strtoupper(trim($symbol));
+        $exchangeUpper = strtoupper(trim((string) $stockExchange));
+
+        if ($exchangeUpper === 'LSE' || str_ends_with($symbolUpper, '.LSE')) {
+            return 'GBP';
+        }
+
+        return null;
     }
 
     /**

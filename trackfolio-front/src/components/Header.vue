@@ -1,9 +1,18 @@
 <template>
   <header class="sticky top-0 z-50 bg-base-100 shadow-md">
     <div class="container mx-auto px-4 py-4 flex items-center justify-between">
-      <RouterLink to="/dashboard" class="text-2xl font-bold no-underline hover:opacity-80">
-        {{ $t('app.name') }}
-      </RouterLink>
+      <div class="flex items-center gap-4">
+        <RouterLink to="/dashboard" class="text-2xl font-bold no-underline hover:opacity-80">
+          {{ $t('app.name') }}
+        </RouterLink>
+        <RouterLink
+          v-if="userStore.account?.is_admin"
+          to="/admin"
+          class="link link-primary link-hover text-sm font-semibold"
+        >
+          Admin
+        </RouterLink>
+      </div>
       <div class="flex items-center gap-4">
         <template v-if="!userStore.account">
           <RouterLink to="/login" class="link link-hover">
@@ -14,18 +23,9 @@
           </RouterLink>
         </template>
         <template v-else>
-          <div class="flex items-center gap-3">
-            <RouterLink to="/account" class="link link-hover font-semibold">
-              {{ userStore.account.name }}
-            </RouterLink>
-            <RouterLink
-              v-if="userStore.account.is_admin"
-              to="/admin"
-              class="link link-primary link-hover text-sm font-semibold"
-            >
-              Admin
-            </RouterLink>
-          </div>
+          <RouterLink to="/account" class="link link-hover font-semibold">
+            {{ userStore.account.name }}
+          </RouterLink>
         </template>
         <select 
           v-model="selectedLocale" 

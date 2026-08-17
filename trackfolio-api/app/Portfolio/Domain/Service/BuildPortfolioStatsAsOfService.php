@@ -33,6 +33,40 @@ class BuildPortfolioStatsAsOfService
         $usdToEur = $usdToEurResolved !== null ? $usdToEurResolved['rate'] : null;
         $usdToEurRateDate = $usdToEurResolved !== null ? $usdToEurResolved['rate_date'] : null;
 
+        $gbpToEurResolved = $this->resolveUsdToEurRateService->resolveGbpToEurOnOrBefore($asOfDate);
+        $gbpToEur = $gbpToEurResolved !== null ? $gbpToEurResolved['rate'] : null;
+        $gbpToEurRateDate = $gbpToEurResolved !== null ? $gbpToEurResolved['rate_date'] : null;
+
+        if ($processId !== null) {
+            if ($usdToEur !== null && $usdToEur > 0) {
+                $this->snapshotCalculationProcessLogService->log(
+                    $processId,
+                    "FX USD→EUR para valoración: rate={$usdToEur} (rate_date={$usdToEurRateDate})",
+                    dateProcessed: $asOfDate,
+                );
+            } else {
+                $this->snapshotCalculationProcessLogService->log(
+                    $processId,
+                    "FX USD→EUR ausente para {$asOfDate}: posiciones USD pueden quedar market_value_eur=null",
+                    dateProcessed: $asOfDate,
+                );
+            }
+
+            if ($gbpToEur !== null && $gbpToEur > 0) {
+                $this->snapshotCalculationProcessLogService->log(
+                    $processId,
+                    "FX GBP→EUR para valoración: rate={$gbpToEur} (rate_date={$gbpToEurRateDate})",
+                    dateProcessed: $asOfDate,
+                );
+            } else {
+                $this->snapshotCalculationProcessLogService->log(
+                    $processId,
+                    "FX GBP→EUR ausente para {$asOfDate}: posiciones GBP pueden quedar market_value_eur=null",
+                    dateProcessed: $asOfDate,
+                );
+            }
+        }
+
         $allHoldings = $this->repository->getAllPortfolioHoldings($userId, $asOfDate);
 
         $enriched = [];
@@ -43,6 +77,7 @@ class BuildPortfolioStatsAsOfService
                 quantity: (float) $holding->quantity,
                 product: (string) $holding->product,
                 usdToEur: $usdToEur,
+                gbpToEur: $gbpToEur,
                 asOfDate: $asOfDate,
                 processId: $processId,
             );
@@ -100,6 +135,8 @@ class BuildPortfolioStatsAsOfService
             'performance_temperature' => $this->buildPerformanceTemperatureFromEnriched($enriched, $asOfDate),
             'usd_to_eur_rate' => $usdToEur,
             'usd_to_eur_rate_date' => $usdToEurRateDate,
+            'gbp_to_eur_rate' => $gbpToEur,
+            'gbp_to_eur_rate_date' => $gbpToEurRateDate,
             'total_market_value_min_unit' => $totalMarketValue > 0 ? $totalMarketValue : null,
             'total_market_value_eur_min_unit' => $totalMarketValueEur > 0 ? $totalMarketValueEur : null,
             'cash_eur_min_unit' => $cashEurMinUnit,
@@ -143,6 +180,7 @@ class BuildPortfolioStatsAsOfService
     private function logHoldingsSnapshot(int $processId, string $asOfDate, array $enrichedHoldings): void
     {
         $items = [];
+        $portfolioEurSum = 0;
         foreach ($enrichedHoldings as $holding) {
             $isin = strtoupper(trim((string) ($holding['isin'] ?? '')));
             $symbol = $holding['ticker_symbol'] ?? null;
@@ -154,10 +192,23 @@ class BuildPortfolioStatsAsOfService
                     : $local?->symbol;
             }
 
+            $marketValueEur = $holding['market_value_eur_min_unit'] ?? null;
+            if ($marketValueEur !== null) {
+                $portfolioEurSum += (int) $marketValueEur;
+            }
+
             $items[] = [
                 'symbol' => $symbol !== null && $symbol !== '' ? (string) $symbol : null,
                 'isin' => $isin,
                 'shares' => (string) ($holding['quantity'] ?? '0'),
+                'close_min_unit' => $holding['closing_price_min_unit'] ?? null,
+                'close_date' => $holding['closing_date'] ?? null,
+                'currency' => $holding['closing_price_currency'] ?? null,
+                'market_value_min_unit' => $holding['market_value_min_unit'] ?? null,
+                'market_value_eur_min_unit' => $marketValueEur,
+                'market_value_eur' => $marketValueEur !== null
+                    ? number_format(((int) $marketValueEur) / 100, 2, '.', '')
+                    : null,
             ];
         }
 
@@ -165,6 +216,13 @@ class BuildPortfolioStatsAsOfService
         $this->snapshotCalculationProcessLogService->log(
             $processId,
             "Cartera en fecha {$asOfDate} en formato JSON: {$json}",
+            dateProcessed: $asOfDate,
+        );
+        $this->snapshotCalculationProcessLogService->log(
+            $processId,
+            'Suma market_value_eur_min_unit de posiciones = '
+                . number_format($portfolioEurSum / 100, 2, '.', '')
+                . ' EUR (centavos=' . $portfolioEurSum . ')',
             dateProcessed: $asOfDate,
         );
     }
@@ -200,6 +258,7 @@ class BuildPortfolioStatsAsOfService
         float $quantity,
         string $product,
         ?float $usdToEur,
+        ?float $gbpToEur,
         string $asOfDate,
         ?int $processId = null,
     ): array {
@@ -213,9 +272,29 @@ class BuildPortfolioStatsAsOfService
             ? $this->resolveIsinClosingPriceService->resolveForD1($isin, $asOfDate)
             : null;
         $providerRequestId = $this->resolveIsinClosingPriceService->lastProviderRequestId();
+        $newlyPersistedQuotes = $this->resolveIsinClosingPriceService->lastNewlyPersistedQuotes();
+        $resolutionSource = $this->resolveIsinClosingPriceService->lastResolutionSource();
 
         if ($processId !== null && $isin !== '' && !$hadUsableIsinRow) {
             $this->logIsinIntroduced($processId, $isin, $asOfDate);
+        }
+
+        if ($processId !== null && $newlyPersistedQuotes !== []) {
+            foreach ($newlyPersistedQuotes as $persisted) {
+                $persistedClose = $persisted['close_price_min_unit'] !== null
+                    ? number_format(((int) $persisted['close_price_min_unit']) / 100, 2, '.', '')
+                    : 'null';
+                $this->snapshotCalculationProcessLogService->log(
+                    $processId,
+                    "isin_quotes INSERT: isin={$persisted['isin']} closing_date={$persisted['closing_date']}"
+                    . " provider={$persisted['provider']} symbol={$persisted['ticker_symbol']}"
+                    . " close_price={$persistedClose}",
+                    dateProcessed: $asOfDate,
+                    isin: $persisted['isin'],
+                    symbol: $persisted['ticker_symbol'],
+                    providerRequestId: $providerRequestId,
+                );
+            }
         }
 
         $tickerSymbol = $this->resolveTickerSymbol($isin, $closing);
@@ -225,9 +304,16 @@ class BuildPortfolioStatsAsOfService
             $closePrice = $closing->close_price_min_unit !== null
                 ? number_format(((int) $closing->close_price_min_unit) / 100, 2, '.', '')
                 : 'null';
+            $sourceLabel = match ($resolutionSource) {
+                'provider_api' => 'API (llamada al proveedor)',
+                'isin_quotes' => 'BD (isin_quotes, sin llamada API)',
+                default => 'desconocido',
+            };
             $this->snapshotCalculationProcessLogService->log(
                 $processId,
-                "ISIN {$isin} resolved closing price via provider={$closing->provider} symbol={$tickerSymbol} close_date={$closeDate} close_price={$closePrice}",
+                "ISIN {$isin} resolved closing price from={$sourceLabel}"
+                . " via provider={$closing->provider} symbol={$tickerSymbol}"
+                . " close_date={$closeDate} close_price={$closePrice}",
                 dateProcessed: $asOfDate,
                 isin: $isin,
                 symbol: $tickerSymbol,
@@ -268,9 +354,12 @@ class BuildPortfolioStatsAsOfService
                 $perShareChange = $closeCents - (int) $previous->close_price_min_unit;
                 $dayChangeMinUnit = (int) round($perShareChange * $quantity);
                 $dayChangePercent = ($perShareChange / (int) $previous->close_price_min_unit) * 100;
-                if ($usdToEur !== null && $usdToEur > 0) {
-                    $dayChangeEurMinUnit = (int) round($dayChangeMinUnit * $usdToEur);
-                }
+                $dayChangeEurMinUnit = $this->toEurMinUnit(
+                    $dayChangeMinUnit,
+                    $currency,
+                    $usdToEur,
+                    $gbpToEur,
+                );
             }
         }
 
@@ -279,10 +368,25 @@ class BuildPortfolioStatsAsOfService
         $totalGainLossPercent = null;
         $marketValueMinUnit = null;
         $marketValueEurMinUnit = null;
+        $valuationNote = 'sin_precio_cierre';
         if ($closeCents !== null) {
             $marketValueMinUnit = (int) round($closeCents * $quantity);
-            if ($usdToEur !== null && $usdToEur > 0) {
+            $currencyUpper = strtoupper((string) ($currency ?? ''));
+            if ($currencyUpper === 'EUR') {
+                $marketValueEurMinUnit = $marketValueMinUnit;
+                $valuationNote = 'close_cents×qty → EUR (moneda EUR, sin FX)';
+            } elseif ($currencyUpper === 'GBP') {
+                if ($gbpToEur !== null && $gbpToEur > 0) {
+                    $marketValueEurMinUnit = (int) round($marketValueMinUnit * $gbpToEur);
+                    $valuationNote = "close_cents×qty×gbp_to_eur({$gbpToEur})";
+                } else {
+                    $valuationNote = 'close_cents×qty calculado pero EUR=null (falta FX GBP→EUR)';
+                }
+            } elseif ($usdToEur !== null && $usdToEur > 0) {
                 $marketValueEurMinUnit = (int) round($marketValueMinUnit * $usdToEur);
+                $valuationNote = "close_cents×qty×usd_to_eur({$usdToEur})";
+            } else {
+                $valuationNote = 'close_cents×qty calculado pero EUR=null (falta FX USD→EUR)';
             }
         }
 
@@ -291,10 +395,36 @@ class BuildPortfolioStatsAsOfService
             if ($costMinUnit !== null && $costMinUnit > 0 && $marketValueMinUnit !== null) {
                 $totalGainLossMinUnit = $marketValueMinUnit - $costMinUnit;
                 $totalGainLossPercent = ($totalGainLossMinUnit / $costMinUnit) * 100;
-                if ($usdToEur !== null && $usdToEur > 0) {
-                    $totalGainLossEurMinUnit = (int) round($totalGainLossMinUnit * $usdToEur);
-                }
+                $totalGainLossEurMinUnit = $this->toEurMinUnit(
+                    $totalGainLossMinUnit,
+                    $currency,
+                    $usdToEur,
+                    $gbpToEur,
+                );
             }
+        }
+
+        if ($processId !== null && $isin !== '') {
+            $symbolLabel = $tickerSymbol ?? '?';
+            $closeLabel = $closeCents !== null
+                ? number_format(((int) $closeCents) / 100, 2, '.', '')
+                : 'null';
+            $mvLabel = $marketValueMinUnit !== null
+                ? number_format(((int) $marketValueMinUnit) / 100, 2, '.', '')
+                : 'null';
+            $mvEurLabel = $marketValueEurMinUnit !== null
+                ? number_format(((int) $marketValueEurMinUnit) / 100, 2, '.', '')
+                : 'null';
+            $this->snapshotCalculationProcessLogService->log(
+                $processId,
+                "Valoración {$symbolLabel} ({$isin}): qty={$quantity} close={$closeLabel}"
+                . " ({$currency}) close_date=" . ($closingDate ?? 'null')
+                . " → market_value={$mvLabel} market_value_eur={$mvEurLabel} EUR"
+                . " [{$valuationNote}]",
+                dateProcessed: $asOfDate,
+                isin: $isin,
+                symbol: $tickerSymbol,
+            );
         }
 
         return [
@@ -315,6 +445,33 @@ class BuildPortfolioStatsAsOfService
             'market_value_eur_min_unit' => $marketValueEurMinUnit,
             'weight_percent' => null,
         ];
+    }
+
+    private function toEurMinUnit(
+        int $amountMinUnit,
+        mixed $currency,
+        ?float $usdToEur,
+        ?float $gbpToEur,
+    ): ?int {
+        $currencyUpper = strtoupper((string) ($currency ?? ''));
+
+        if ($currencyUpper === 'EUR') {
+            return $amountMinUnit;
+        }
+
+        if ($currencyUpper === 'GBP') {
+            if ($gbpToEur === null || $gbpToEur <= 0) {
+                return null;
+            }
+
+            return (int) round($amountMinUnit * $gbpToEur);
+        }
+
+        if ($usdToEur === null || $usdToEur <= 0) {
+            return null;
+        }
+
+        return (int) round($amountMinUnit * $usdToEur);
     }
 
     private function hasUsableIsinRow(string $isin): bool

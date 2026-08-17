@@ -8,12 +8,20 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     *
+     * Fresh installs already get unique(isin, closing_date, provider) from the create
+     * table migration; this only upgrades DBs that still have the old 2-column unique.
      */
     public function up(): void
     {
         Schema::table('isin_closing_prices', function (Blueprint $table) {
-            $table->dropUnique(['isin', 'closing_date']);
-            $table->unique(['isin', 'closing_date', 'provider']);
+            if (Schema::hasIndex('isin_closing_prices', 'isin_closing_prices_isin_closing_date_unique')) {
+                $table->dropUnique(['isin', 'closing_date']);
+            }
+
+            if (! Schema::hasIndex('isin_closing_prices', 'isin_closing_prices_isin_closing_date_provider_unique')) {
+                $table->unique(['isin', 'closing_date', 'provider']);
+            }
         });
     }
 
@@ -23,8 +31,13 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('isin_closing_prices', function (Blueprint $table) {
-            $table->dropUnique(['isin', 'closing_date', 'provider']);
-            $table->unique(['isin', 'closing_date']);
+            if (Schema::hasIndex('isin_closing_prices', 'isin_closing_prices_isin_closing_date_provider_unique')) {
+                $table->dropUnique(['isin', 'closing_date', 'provider']);
+            }
+
+            if (! Schema::hasIndex('isin_closing_prices', 'isin_closing_prices_isin_closing_date_unique')) {
+                $table->unique(['isin', 'closing_date']);
+            }
         });
     }
 };
